@@ -1,0 +1,2204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FTR Production Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0d0f14;--surface:#151820;--surface2:#1c2030;--border:#2a3045;
+    --accent:#f5a623;--accent2:#3af0a0;--danger:#ff4d4d;
+    --text:#e8ecf5;--muted:#7a85a3;--prime:#4d9fff;--keep:#3af0a0;--pay:#ff7e5f;--retainer:#c97fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  header{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.4rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);}
+  .logo span{color:var(--text);}
+  .header-right{display:flex;align-items:center;gap:1.5rem;}
+  .header-meta{font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--muted);text-align:right;}
+  .header-meta strong{color:var(--accent2);}
+
+  .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;}
+  .tab{padding:0.9rem 1.5rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all 0.15s;}
+  .tab:hover{color:var(--text);}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+  main{padding:1.5rem 2rem;max-width:1500px;margin:0 auto;}
+  .section{display:none;}
+  .section.active{display:block;}
+
+  /* CONTEXT BAR */
+  .context-bar{display:flex;align-items:flex-end;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1rem 1.2rem;}
+  .context-bar label{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:0.3rem;}
+  .context-group{display:flex;flex-direction:column;}
+
+  input,select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.55rem 0.75rem;font-family:'Barlow',sans-serif;font-size:0.875rem;border-radius:3px;outline:none;transition:border-color 0.15s;}
+  input:focus,select:focus{border-color:var(--accent);}
+  select option{background:var(--surface2);}
+
+  .btn{padding:0.55rem 1.2rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:0.1em;text-transform:uppercase;border:none;border-radius:3px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+  .btn-primary{background:var(--accent);color:#000;}
+  .btn-primary:hover{background:#ffb84d;}
+  .btn-green{background:var(--accent2);color:#000;}
+  .btn-green:hover{background:#5fffc0;}
+  .btn-danger{background:transparent;border:1px solid var(--danger);color:var(--danger);padding:0.4rem 0.7rem;}
+  .btn-danger:hover{background:var(--danger);color:#fff;}
+  .btn-sm{padding:0.35rem 0.7rem;font-size:0.75rem;}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+  .btn-ghost:hover{border-color:var(--accent2);color:var(--accent2);}
+  .btn-outline-accent{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+  .btn-outline-accent:hover{background:var(--accent);color:#000;}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:1.5rem;}
+  .panel-header{padding:0.8rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);}
+  .panel-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.8rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);}
+  .panel-body{padding:1.2rem;}
+
+  .form-row{display:grid;grid-template-columns:150px 1fr 110px 90px auto;gap:0.6rem;align-items:end;margin-bottom:0.6rem;}
+  label{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:0.3rem;}
+
+  .summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:1.5rem;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1rem 1.2rem;position:relative;overflow:hidden;}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .card.c-entries::before{background:var(--accent);}
+  .card.c-prime::before{background:var(--prime);}
+  .card.c-pay::before{background:var(--pay);}
+  .card.c-keep::before{background:var(--keep);}
+  .card.c-retainer::before{background:var(--retainer);}
+  .card-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.68rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem;}
+  .card-value{font-family:'Share Tech Mono',monospace;font-size:1.6rem;line-height:1;}
+  .card.c-entries .card-value{color:var(--accent);}
+  .card.c-prime .card-value{color:var(--prime);}
+  .card.c-pay .card-value{color:var(--pay);}
+  .card.c-keep .card-value{color:var(--keep);}
+  .card.c-retainer .card-value{color:var(--retainer);}
+  .card-sub{font-size:0.72rem;color:var(--muted);margin-top:0.3rem;}
+
+  table{width:100%;border-collapse:collapse;font-size:0.84rem;}
+  thead tr{border-bottom:2px solid var(--border);}
+  th{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.68rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0.6rem 0.7rem;}
+  td{padding:0.6rem 0.7rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr:hover td{background:rgba(255,255,255,0.02);}
+
+  .mono{font-family:'Share Tech Mono',monospace;}
+  .tag{display:inline-block;padding:0.15rem 0.45rem;background:rgba(77,159,255,0.12);border:1px solid rgba(77,159,255,0.25);border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:0.73rem;color:var(--prime);}
+  .site-badge{display:inline-block;padding:0.12rem 0.5rem;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;}
+  .site-beckley{background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.3);color:var(--accent);}
+  .site-charleston{background:rgba(77,159,255,0.15);border:1px solid rgba(77,159,255,0.3);color:var(--prime);}
+  .site-wheeling{background:rgba(58,240,160,0.15);border:1px solid rgba(58,240,160,0.3);color:var(--keep);}
+  .site-virginia{background:rgba(201,127,255,0.15);border:1px solid rgba(201,127,255,0.3);color:var(--retainer);}
+
+  .val-prime{color:var(--prime);font-family:'Share Tech Mono',monospace;}
+  .val-pay{color:var(--pay);font-family:'Share Tech Mono',monospace;}
+  .val-keep{color:var(--keep);font-family:'Share Tech Mono',monospace;font-weight:600;}
+  .val-ret{color:var(--retainer);font-family:'Share Tech Mono',monospace;}
+
+  .unit-preview{background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:0.6rem 0.8rem;font-size:0.8rem;margin-bottom:0.8rem;display:none;flex-wrap:wrap;gap:1.5rem;align-items:center;}
+  .unit-preview.show{display:flex;}
+  .upf{display:flex;flex-direction:column;}
+  .upf strong{font-family:'Share Tech Mono',monospace;font-size:0.88rem;}
+  .upf span{font-size:0.68rem;color:var(--muted);margin-top:0.1rem;}
+  .upf.prime strong{color:var(--prime);}
+  .upf.pay strong{color:var(--pay);}
+  .upf.keep strong{color:var(--keep);}
+
+  .retainer-bar-wrap{background:var(--bg);border-radius:2px;height:5px;margin-top:0.4rem;overflow:hidden;}
+  .retainer-bar{background:var(--retainer);height:100%;border-radius:2px;transition:width 0.4s;}
+
+  .empty{text-align:center;padding:2.5rem;color:var(--muted);font-size:0.9rem;}
+  .empty-icon{font-size:2rem;margin-bottom:0.6rem;opacity:0.4;}
+
+  /* HISTORY */
+  .history-day{margin-bottom:1rem;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .history-day-header{background:var(--surface2);padding:0.7rem 1.2rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+  .history-body{display:none;}
+  .history-body.open{display:block;}
+  .chevron{color:var(--muted);transition:transform 0.2s;font-size:0.8rem;}
+  .chevron.open{transform:rotate(90deg);}
+  .pills{display:flex;gap:0.5rem;flex-wrap:wrap;}
+  .pill{padding:0.15rem 0.5rem;border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:0.72rem;}
+  .pill.prime{background:rgba(77,159,255,0.15);color:var(--prime);}
+  .pill.pay{background:rgba(255,126,95,0.15);color:var(--pay);}
+  .pill.keep{background:rgba(58,240,160,0.15);color:var(--keep);}
+
+  /* WEEKLY */
+  .week-nav{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;}
+  .week-range{font-family:'Share Tech Mono',monospace;font-size:0.9rem;color:var(--accent);}
+  .pay-tabs{display:flex;gap:0.5rem;margin-bottom:1rem;}
+  .pay-tab{padding:0.45rem 1.1rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.78rem;letter-spacing:0.1em;text-transform:uppercase;border-radius:3px;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:transparent;transition:all 0.15s;}
+  .pay-tab.active{background:var(--accent);color:#000;border-color:var(--accent);}
+
+  /* CONTRACTOR MANAGER */
+  .contractor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;margin-bottom:1.5rem;}
+  .contractor-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.2rem;}
+  .contractor-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:0.8rem;color:var(--text);}
+  .contractor-retainer-label{font-size:0.72rem;color:var(--muted);margin-bottom:0.3rem;}
+  .contractor-retainer-val{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--retainer);}
+
+  /* SITE MANAGER */
+  .site-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;}
+  .site-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.2rem;position:relative;}
+  .site-card-name{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.2rem;letter-spacing:0.05em;margin-bottom:0.3rem;}
+  .site-card-client{font-size:0.8rem;color:var(--muted);margin-bottom:0.8rem;}
+  .site-card-meta{font-size:0.75rem;color:var(--muted);}
+
+  /* FILTER ROW */
+  .filter-row{display:flex;gap:0.8rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem;}
+
+  .unit-item{padding:0.5rem 0.75rem;cursor:pointer;border-bottom:1px solid var(--border);font-size:0.82rem;}
+.unit-item:hover{background:var(--accent);color:#000;}
+.unit-item:hover .unit-item-code{color:#000;}
+.unit-item:last-child{border-bottom:none;}
+.unit-item-code{font-family:'Share Tech Mono',monospace;font-size:0.78rem;color:var(--accent);margin-right:0.5rem;}
+.unit-item-uom{font-size:0.7rem;color:var(--muted);margin-left:0.4rem;}
+.notif{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--accent2);color:#000;padding:0.7rem 1.2rem;border-radius:3px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.9rem;letter-spacing:0.05em;opacity:0;transform:translateY(10px);transition:all 0.2s;pointer-events:none;z-index:999;}
+  .notif.show{opacity:1;transform:translateY(0);}
+
+  .divider{width:1px;background:var(--border);align-self:stretch;}
+  .section-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.72rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem;}
+
+  /* ADD FORMS */
+  .add-form{display:flex;gap:0.6rem;align-items:flex-end;flex-wrap:wrap;padding:1rem;background:var(--surface2);border-radius:3px;margin-bottom:1rem;}
+  .add-form .fg{display:flex;flex-direction:column;}
+  .add-form input,.add-form select{min-width:140px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">FTR <span>Production Tracker</span></div>
+  <div class="header-right">
+    <div style="display:flex;gap:0.5rem;">
+      <button class="btn btn-ghost btn-sm" onclick="exportData()" title="Export all data as JSON backup">⬇ Export Data</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()" title="Import JSON backup">⬆ Import Data</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+    <div class="header-meta"><div id="clockDisplay"></div><div>Multi-Site · Multi-Crew</div></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('entry')">Daily Entry</div>
+  <div class="tab" onclick="switchTab('history')">History</div>
+  <div class="tab" onclick="switchTab('weekly')">Weekly Pay Detail</div>
+  <div class="tab" onclick="switchTab('contractors')">Contractors</div>
+  <div class="tab" onclick="switchTab('sites')">Sites</div>
+</div>
+
+<main>
+
+  <!-- ===================== DAILY ENTRY ===================== -->
+  <div class="section active" id="tab-entry">
+
+    <div class="context-bar">
+      <div class="context-group">
+        <label>Date</label>
+        <input type="date" id="entryDate" style="width:155px;">
+      </div>
+      <div class="context-group">
+        <label>Site</label>
+        <select id="entrySite" onchange="onSiteChange()" style="width:160px;">
+          <option value="">— Select Site —</option>
+        </select>
+      </div>
+      <div class="context-group">
+        <label>Contractor / Crew</label>
+        <select id="entryCrew" style="width:180px;">
+          <option value="">— Select Crew —</option>
+        </select>
+      </div>
+      <div class="context-group">
+        <label>Invoice #</label>
+        <div style="display:flex;align-items:center;gap:0.4rem;">
+          <span id="invoicePrefix" style="font-family:'Share Tech Mono',monospace;font-size:0.85rem;color:var(--accent);white-space:nowrap;">WV-???-</span>
+          <input type="number" id="invoiceNo" placeholder="001" min="1" max="999" oninput="updateInvoicePreview()" style="width:80px;">
+        </div>
+        <div id="invoiceFull" style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;color:var(--accent2);margin-top:0.2rem;"></div>
+      </div>
+      <div class="context-group">
+        <label>Address</label>
+        <input type="text" id="entryAddress" placeholder="Job site address..." style="width:260px;">
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="setToday()" style="margin-bottom:1px;">Today</button>
+      <button class="btn btn-outline-accent btn-sm" onclick="nextJob()" style="margin-bottom:1px;" title="Clear address & invoice for next job">✓ Next Job</button>
+    </div>
+
+    <div class="summary-grid">
+      <div class="card c-entries"><div class="card-label">Line Items</div><div class="card-value" id="s-count">0</div><div class="card-sub">entries today</div></div>
+      <div class="card c-prime"><div class="card-label">Prime Billed</div><div class="card-value" id="s-prime">$0.00</div><div class="card-sub">to prime client</div></div>
+      <div class="card c-pay"><div class="card-label">Crew Net Pay</div><div class="card-value" id="s-pay">$0.00</div><div class="card-sub">after retainer</div></div>
+      <div class="card c-keep"><div class="card-label">Your Keep</div><div class="card-value" id="s-keep">$0.00</div><div class="card-sub">your revenue</div></div>
+      <div class="card c-retainer"><div class="card-label">Retainer Held</div><div class="card-value" id="s-ret">$0.00</div><div class="card-sub">today's withholding</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Add Line Item</span></div>
+      <div class="panel-body">
+        <div class="form-row">
+          <div style="position:relative;">
+            <label>Unit Code</label>
+            <input type="text" id="unitCodeSearch" placeholder="Type code or description..." oninput="filterUnitCodes()" onfocus="showUnitDropdown()" autocomplete="off" style="width:100%">
+            <input type="hidden" id="unitCode">
+            <div id="unitDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--accent);border-top:none;border-radius:0 0 3px 3px;max-height:260px;overflow-y:auto;z-index:200;"></div>
+          </div>
+          <div>
+            <label>Description</label>
+            <input type="text" id="unitDesc" readonly style="color:var(--muted);width:100%">
+          </div>
+          <div>
+            <label>UOM</label>
+            <input type="text" id="unitUOM" readonly style="color:var(--muted);width:100%">
+          </div>
+          <div>
+            <label>Quantity</label>
+            <input type="number" id="qty" min="0.01" step="0.01" placeholder="0" oninput="updatePreview()" style="width:100%">
+          </div>
+          <div style="padding-top:1.6rem;">
+            <button class="btn btn-primary" onclick="addEntry()">+ Add</button>
+          </div>
+        </div>
+        <div class="unit-preview" id="unitPreview">
+          <div class="upf prime"><strong id="prev-prime">—</strong><span>Prime / unit</span></div>
+          <div class="upf pay"><strong id="prev-pay">—</strong><span>Contractor / unit</span></div>
+          <div class="upf keep"><strong id="prev-keep">—</strong><span>Keep / unit</span></div>
+          <div class="divider"></div>
+          <div class="upf prime"><strong id="prev-prime-t">—</strong><span>Prime Total</span></div>
+          <div class="upf pay"><strong id="prev-pay-t">—</strong><span>Pay Total</span></div>
+          <div class="upf keep"><strong id="prev-keep-t">—</strong><span>Keep Total</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Today's Entries</span>
+        <div style="display:flex;gap:0.5rem;">
+          <select id="filterSiteToday" onchange="renderEntries()" style="font-size:0.78rem;padding:0.3rem 0.6rem;">
+            <option value="">All Sites</option>
+          </select>
+          <select id="filterCrewToday" onchange="renderEntries()" style="font-size:0.78rem;padding:0.3rem 0.6rem;">
+            <option value="">All Crews</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearDayFiltered()">Clear Filtered</button>
+        </div>
+      </div>
+      <div style="padding:0;" id="entriesContainer">
+        <div class="empty"><div class="empty-icon">📋</div>No entries yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== HISTORY ===================== -->
+  <div class="section" id="tab-history">
+    <div class="filter-row">
+      <div><label style="display:block;margin-bottom:0.3rem;">Filter by Site</label>
+        <select id="histSite" onchange="renderHistory()" style="width:160px;"><option value="">All Sites</option></select></div>
+      <div><label style="display:block;margin-bottom:0.3rem;">Filter by Crew</label>
+        <select id="histCrew" onchange="renderHistory()" style="width:180px;"><option value="">All Crews</option></select></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">All Days</span><button class="btn btn-ghost btn-sm" onclick="renderHistory()">↻ Refresh</button></div>
+      <div class="panel-body" id="historyContainer"><div class="empty"><div class="empty-icon">📂</div>No history yet.</div></div>
+    </div>
+  </div>
+
+  <!-- ===================== WEEKLY PAY ===================== -->
+  <div class="section" id="tab-weekly">
+
+    <!-- Week nav always visible -->
+    <div class="week-nav">
+      <button class="btn btn-ghost btn-sm" onclick="changeWeek(-1)">◀ Prev</button>
+      <span class="week-range" id="weekRange"></span>
+      <button class="btn btn-ghost btn-sm" onclick="changeWeek(1)">Next ▶</button>
+      <button class="btn btn-ghost btn-sm" onclick="goThisWeek()">This Week</button>
+    </div>
+
+    <!-- Week summary cards -->
+    <div class="summary-grid">
+      <div class="card c-entries"><div class="card-label">Week Items</div><div class="card-value" id="w-count">0</div></div>
+      <div class="card c-prime"><div class="card-label">Week Prime</div><div class="card-value" id="w-prime">$0.00</div><div class="card-sub">billed to client</div></div>
+      <div class="card c-pay"><div class="card-label">Week Net Pay</div><div class="card-value" id="w-pay">$0.00</div><div class="card-sub">all crews</div></div>
+      <div class="card c-keep"><div class="card-label">Week Keep</div><div class="card-value" id="w-keep">$0.00</div></div>
+      <div class="card c-retainer"><div class="card-label">Week Retainer Held</div><div class="card-value" id="w-ret">$0.00</div></div>
+    </div>
+
+    <!-- Sub-tab switcher -->
+    <div class="pay-tabs">
+      <button class="pay-tab active" onclick="showPayView('crew')">Crew Payouts</button>
+      <button class="pay-tab" onclick="showPayView('mine')">My Productivity</button>
+      <button class="pay-tab" onclick="showPayView('invoices')">Site Invoices</button>
+    </div>
+
+    <!-- ---- CREW PAYOUTS VIEW ---- -->
+    <div id="payview-crew">
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">
+        One PDF per crew — each shows their line items, daily totals, retainer status, and calculated pay date.
+        Pay date is auto-calculated: <span style="color:var(--accent2)">WV sites = Net 30 (invoice date + 30 days → next Friday)</span> ·
+        <span style="color:var(--retainer)">VA sites = Net 14 (Wed week-end + 14 days → next Friday you receive → following Friday crew paid)</span>
+      </div>
+      <div id="crewPayoutCards"></div>
+    </div>
+
+    <!-- ---- MY PRODUCTIVITY VIEW ---- -->
+    <div id="payview-mine" style="display:none;">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">My Productivity — All Crews — <span id="week-end-m"></span></span>
+          <button class="btn btn-green btn-sm" onclick="printMyProductivity()">⬇ Export PDF</button>
+        </div>
+        <div style="padding:0;" id="myPayTable"><div class="empty"><div class="empty-icon">📄</div>No entries this week.</div></div>
+      </div>
+    </div>
+
+    <!-- ---- SITE INVOICES VIEW ---- -->
+    <div id="payview-invoices" style="display:none;">
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">
+        Generate a prime client invoice for each WV site — all jobs for the week, grouped by invoice number, with full line item detail.
+      </div>
+      <div id="siteInvoiceCards"></div>
+    </div>
+
+  </div>
+
+  <!-- ===================== CONTRACTORS ===================== -->
+  <div class="section" id="tab-contractors">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Add Contractor / Crew</span></div>
+      <div class="panel-body">
+        <div class="add-form">
+          <div class="fg"><label>Crew Name</label><input type="text" id="newCrewName" placeholder="e.g. Smith Crew" style="width:200px;"></div>
+          <div class="fg"><label>Starting Retainer ($)</label><input type="number" id="newCrewRetainer" placeholder="0.00" step="0.01" style="width:160px;"></div>
+          <button class="btn btn-primary" onclick="addCrew()">+ Add Crew</button>
+        </div>
+      </div>
+    </div>
+    <div class="contractor-grid" id="contractorGrid"></div>
+  </div>
+
+  <!-- ===================== SITES ===================== -->
+  <div class="section" id="tab-sites">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Add Site</span></div>
+      <div class="panel-body">
+        <div class="add-form">
+          <div class="fg"><label>Site Name</label><input type="text" id="newSiteName" placeholder="e.g. Wheeling" style="width:160px;"></div>
+          <div class="fg"><label>Abbr (e.g. BCK)</label><input type="text" id="newSiteAbbr" placeholder="BCK" maxlength="5" style="width:90px;text-transform:uppercase;"></div>
+          <div class="fg"><label>Prime Client</label><input type="text" id="newSiteClient" placeholder="e.g. Frontier" style="width:180px;"></div>
+          <div class="fg"><label>State</label>
+            <select id="newSiteState" style="width:120px;">
+              <option value="WV">WV (Net 30)</option>
+              <option value="VA">VA (Net 14)</option>
+            </select>
+          </div>
+          <div class="fg"><label>Price List</label>
+            <select id="newSitePriceList" style="width:200px;">
+              <option value="beckley">Beckley SOW</option>
+              <option value="wheeling">Charleston / Wheeling FTTH SOW</option>
+                  <option value="virginia">Virginia REC/CVEC SOW</option>
+                  <option value="allpoints">Virginia All Points SOW</option>
+              <option value="virginia">Virginia (coming soon)</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="addSite()">+ Add Site</button>
+        </div>
+      </div>
+    </div>
+    <div class="site-grid" id="siteGrid"></div>
+  </div>
+
+</main>
+
+<div class="notif" id="notif"></div>
+<iframe id="printFrame" style="display:none;position:fixed;top:-9999px;"></iframe>
+
+<script>
+// ============================================================
+// SOW PRICE LISTS
+// ============================================================
+const PRICE_LISTS = {
+  beckley: [
+    {unit:"NA02A",desc:"Place Aerial Self Support Cable (<12 pair)",uom:"FT",prime:0.50,pay:0.35,keep:0.15},
+    {unit:"NA02X",desc:"Remove Aerial Self Support Cable (<12 pair)",uom:"FT",prime:0.35,pay:0.24,keep:0.11},
+    {unit:"NA12A",desc:"WV Cut & Leave Tree <18\"",uom:"EA",prime:238.00,pay:142.00,keep:96.00},
+    {unit:"NA12B",desc:"WV Cut & Leave Tree >18\"",uom:"EA",prime:294.00,pay:176.00,keep:118.00},
+    {unit:"NA12C",desc:"WV Cut & Dispose Tree <18\"",uom:"EA",prime:403.00,pay:242.00,keep:161.00},
+    {unit:"NA12D",desc:"WV Cut & Dispose Tree >18\"",uom:"EA",prime:606.00,pay:364.00,keep:242.00},
+    {unit:"NA13",desc:"Delash/Relash Cable (All Sizes)",uom:"FT",prime:0.70,pay:0.53,keep:0.17},
+    {unit:"NA14",desc:"WV Trim Brush / Vines",uom:"FT",prime:1.70,pay:0.68,keep:1.02},
+    {unit:"NB015",desc:"Fiber Terminal Installation - Aerial",uom:"EA",prime:42.00,pay:30.00,keep:12.00},
+    {unit:"NB016",desc:"Remove Fiber Terminal - Aerial",uom:"EA",prime:69.00,pay:48.00,keep:21.00},
+    {unit:"NB017",desc:"Fiber Terminal Installation - Buried",uom:"EA",prime:52.50,pay:37.00,keep:15.50},
+    {unit:"NB018",desc:"Remove Fiber Terminal - Buried",uom:"EA",prime:102.00,pay:70.00,keep:32.00},
+    {unit:"NB026",desc:"Fiber Service Drop Removal - Buried",uom:"Per Drop",prime:0.27,pay:0.18,keep:0.09},
+    {unit:"NB028",desc:"Fiber Service Wire Termination",uom:"Per Drop",prime:31.50,pay:22.50,keep:9.00},
+    {unit:"NB029",desc:"Place Buried Fiber Terminal Tail >25'",uom:"FT",prime:0.74,pay:0.56,keep:0.18},
+    {unit:"NB030",desc:"Fiber Splitter Assembly Installation",uom:"EA",prime:31.50,pay:22.50,keep:9.00},
+    {unit:"NB031",desc:"Remove Fiber Splitter Assembly",uom:"EA",prime:27.00,pay:18.50,keep:8.50},
+    {unit:"NB032",desc:"Additional Buried Terminal Tails",uom:"FT",prime:0.54,pay:0.41,keep:0.13},
+    {unit:"NB033",desc:"Aerial Fiber Terminal Tail >25'",uom:"FT",prime:1.02,pay:0.77,keep:0.25},
+    {unit:"NB034",desc:"Additional Aerial Terminal Tails",uom:"FT",prime:0.79,pay:0.59,keep:0.20},
+    {unit:"NP18A",desc:"Place Strand (All Sizes)",uom:"FT",prime:0.53,pay:0.47,keep:0.06},
+    {unit:"NP18B",desc:"Remove Strand (All Sizes)",uom:"FT",prime:0.29,pay:0.22,keep:0.07},
+    {unit:"NP22D",desc:"Place Aerial Cable <1.5\" DIA",uom:"FT",prime:0.69,pay:0.52,keep:0.17},
+    {unit:"NP22E",desc:"Place Aerial Cable >1.6\" DIA",uom:"FT",prime:1.05,pay:0.79,keep:0.26},
+    {unit:"NP22F",desc:"Remove Aerial Cable <1.5\" DIA",uom:"FT",prime:0.48,pay:0.36,keep:0.12},
+    {unit:"NP22G",desc:"Remove Aerial Cable >1.6\" DIA",uom:"FT",prime:0.84,pay:0.63,keep:0.21},
+    {unit:"NP22J",desc:"Delash/Relash Cable (All Sizes)",uom:"FT",prime:0.71,pay:0.53,keep:0.18},
+    {unit:"NP01A",desc:"Place Pole / Push Brace",uom:"EA",prime:254.00,pay:152.00,keep:102.00},
+    {unit:"NP01B",desc:"Remove Pole / Push Brace",uom:"EA",prime:80.00,pay:48.00,keep:32.00},
+    {unit:"NP01C",desc:"Straighten / Reset Pole",uom:"EA",prime:121.00,pay:73.00,keep:48.00},
+    {unit:"NP01E",desc:"Transfer Push Brace",uom:"EA",prime:80.00,pay:48.00,keep:32.00},
+    {unit:"NP01F",desc:"Place / Move Key or Stub",uom:"EA",prime:97.00,pay:58.00,keep:39.00},
+    {unit:"NP01G",desc:"Remove Key or Stub",uom:"EA",prime:92.00,pay:55.00,keep:37.00},
+    {unit:"NP01H",desc:"Place Pole - Inaccessible / Rear Easement",uom:"EA",prime:504.00,pay:300.00,keep:204.00},
+    {unit:"NP03A",desc:"Poles in Power",uom:"EA",prime:756.00,pay:450.00,keep:306.00},
+    {unit:"NP03B",desc:"Poles in Power - Removal Only",uom:"EA",prime:192.50,pay:115.00,keep:77.50},
+    {unit:"NP04A",desc:"Place Pole Steps",uom:"EA",prime:115.50,pay:69.00,keep:46.50},
+    {unit:"NP05A",desc:"Transfer Attachments",uom:"EA",prime:63.00,pay:37.50,keep:25.50},
+    {unit:"NP07A",desc:"Place Anchor & Guy",uom:"EA",prime:204.00,pay:135.00,keep:69.00},
+    {unit:"NP07B",desc:"Remove Anchor & Guy",uom:"EA",prime:68.00,pay:44.00,keep:24.00},
+    {unit:"NP08A",desc:"Place Down Guy",uom:"EA",prime:36.00,pay:23.00,keep:13.00},
+    {unit:"NP11B",desc:"Place Arms",uom:"EA",prime:60.00,pay:39.00,keep:21.00},
+    {unit:"NP11C",desc:"Transfer Arms",uom:"EA",prime:57.00,pay:37.00,keep:20.00},
+    {unit:"NP11D",desc:"Remove Arms",uom:"EA",prime:52.50,pay:34.00,keep:18.50},
+    {unit:"NP16A",desc:"Pole Ground (Vertical Only)",uom:"EA",prime:38.50,pay:25.00,keep:13.50},
+    {unit:"NP16D",desc:"Bond & Ground Manhole",uom:"EA",prime:105.00,pay:68.00,keep:37.00},
+    {unit:"NP22B",desc:"Re-Sag Aerial Cable",uom:"EA",prime:70.00,pay:45.00,keep:25.00},
+    {unit:"NP35A",desc:"Place Aerial Wire",uom:"FT",prime:0.33,pay:0.22,keep:0.11},
+    {unit:"NP35B",desc:"Transfer Aerial Wire",uom:"EA",prime:18.20,pay:11.50,keep:6.70},
+    {unit:"NP35C",desc:"Remove Aerial Wire",uom:"FT",prime:0.22,pay:0.14,keep:0.08},
+    {unit:"NP36A",desc:"Place Aerial Drop",uom:"SPAN",prime:128.80,pay:85.00,keep:43.80},
+    {unit:"NP36B",desc:"Remove Aerial Drop",uom:"SPAN",prime:73.50,pay:48.00,keep:25.50},
+    {unit:"NP36D",desc:"Transfer Aerial Drop",uom:"Per Drop",prime:18.90,pay:12.00,keep:6.90},
+    {unit:"NP51A",desc:"Plow Cable <1000'",uom:"FT",prime:3.33,pay:2.16,keep:1.17},
+    {unit:"NP51B",desc:"Plow Cable >1000'",uom:"FT",prime:2.28,pay:1.48,keep:0.80},
+    {unit:"NP51C",desc:"Additional Depth (Each 6\")",uom:"FT",prime:0.32,pay:0.20,keep:0.12},
+    {unit:"NP51F",desc:"Plow Additional Cable / Sub-Duct",uom:"FT",prime:0.45,pay:0.28,keep:0.17},
+    {unit:"NP52A",desc:"Prerip",uom:"FT",prime:0.88,pay:0.55,keep:0.33},
+    {unit:"NP54A",desc:"Trench <1000' (30\" Cover)",uom:"FT",prime:4.83,pay:3.14,keep:1.69},
+    {unit:"NP54B",desc:"Trench >1000' (30\" Cover)",uom:"FT",prime:4.94,pay:3.21,keep:1.73},
+    {unit:"NP54C",desc:"Additional Depth (Each 6\")",uom:"FT",prime:0.91,pay:0.56,keep:0.35},
+    {unit:"NP55A",desc:"Backhoe Buried Cable <36\"",uom:"FT",prime:7.00,pay:4.55,keep:2.45},
+    {unit:"NP55B",desc:"Backhoe Additional Depth (12\")",uom:"FT",prime:1.33,pay:0.82,keep:0.51},
+    {unit:"NP55C",desc:"Backhoe Cable Removal <36\"",uom:"FT",prime:7.60,pay:4.56,keep:3.04},
+    {unit:"NP55D",desc:"Backhoe Removal Additional Depth",uom:"FT",prime:1.54,pay:0.95,keep:0.59},
+    {unit:"NP57A",desc:"Hand Dig Trench",uom:"FT",prime:6.99,pay:4.19,keep:2.80},
+    {unit:"NP59A",desc:"Bore / Pull <2\"",uom:"FT",prime:10.15,pay:7.61,keep:2.54},
+    {unit:"NP59B",desc:"Bore / Pull 2.1\"-4\"",uom:"FT",prime:11.13,pay:8.35,keep:2.78},
+    {unit:"NP59C",desc:"Additional Bore",uom:"FT",prime:2.98,pay:2.24,keep:0.74},
+    {unit:"NP59U",desc:"Unsuccessful Bore",uom:"EA",prime:222.60,pay:144.69,keep:77.91},
+    {unit:"NP70A",desc:"Solid Rock",uom:"EA",prime:805.00,pay:523.25,keep:281.75},
+    {unit:"NP70B",desc:"Rock Saw",uom:"FT",prime:18.90,pay:12.28,keep:6.62},
+    {unit:"NP49A",desc:"Place Cable/Duct in Open Trench",uom:"FT",prime:0.62,pay:0.40,keep:0.22},
+    {unit:"NP49B",desc:"Place Additional Cable/Duct",uom:"FT",prime:0.32,pay:0.20,keep:0.12},
+    {unit:"NP43B",desc:"Remove Underground Cable",uom:"FT",prime:1.21,pay:0.73,keep:0.48},
+    {unit:"NF17",desc:"Ribbon Splicing 1-36",uom:"Per Strand",prime:38.50,pay:26.95,keep:11.55},
+    {unit:"NF18",desc:"Ribbon Splicing 37-96",uom:"Per Strand",prime:35.50,pay:24.85,keep:10.65},
+    {unit:"NF19",desc:"Ribbon Splicing 97+",uom:"Per Strand",prime:24.50,pay:17.15,keep:7.35},
+    {unit:"NF22",desc:"Loose Tube Splicing <12",uom:"Per Fiber",prime:38.50,pay:26.95,keep:11.55},
+    {unit:"NF23",desc:"Loose Tube Splicing 13-48",uom:"Per Fiber",prime:38.50,pay:26.95,keep:11.55},
+    {unit:"NF24",desc:"Loose Tube Splicing 49-96",uom:"Per Fiber",prime:40.60,pay:28.42,keep:12.18},
+    {unit:"NF25",desc:"Loose Tube Splicing 97+",uom:"Per Fiber",prime:34.65,pay:24.26,keep:10.39},
+    {unit:"NF26",desc:"Place/Remove/Replace Fiber Closure",uom:"Per Closure",prime:202.00,pay:141.40,keep:60.60},
+    {unit:"NFE30A",desc:"Fiber Splicer Vehicle",uom:"HR",prime:49.00,pay:24.50,keep:24.50},
+    {unit:"NFE30B",desc:"Fiber Splice Vehicle",uom:"1/4 HR",prime:12.25,pay:6.13,keep:6.12},
+    {unit:"NFL30A",desc:"Labor - Standard",uom:"HR",prime:40.00,pay:20.00,keep:20.00},
+    {unit:"NFL30B",desc:"Labor - Quarter Hour",uom:"1/4 HR",prime:10.00,pay:5.00,keep:5.00},
+    {unit:"NFL30C",desc:"Labor - OT",uom:"HR-OT",prime:60.00,pay:30.00,keep:30.00},
+    {unit:"NFL30D",desc:"Labor - Quarter Hour - OT",uom:"1/4 HR-OT",prime:15.00,pay:7.50,keep:7.50},
+    {unit:"NFL30E",desc:"Labor - Double Time",uom:"HR",prime:81.00,pay:40.50,keep:40.50},
+    {unit:"NFL30F",desc:"Labor - Quarter Hour - Double Time",uom:"1/4 HR",prime:20.00,pay:10.00,keep:10.00},
+    {unit:"NS01A",desc:"Tag Pairs",uom:"Per Pair",prime:5.10,pay:3.32,keep:1.78},
+    {unit:"NS02A",desc:"Straight Splice 1-50 Pairs",uom:"Per Pair",prime:2.56,pay:1.66,keep:0.90},
+    {unit:"NS02B",desc:"Straight Splice 51-300 Pairs",uom:"Per Pair",prime:2.51,pay:1.63,keep:0.88},
+    {unit:"NS02C",desc:"Straight Splice >300 Pairs",uom:"Per Pair",prime:2.23,pay:1.45,keep:0.78},
+    {unit:"NS02D",desc:"Straight Splice - 10 Pair Minimum",uom:"Per Location",prime:45.50,pay:27.30,keep:18.20},
+    {unit:"NS04A",desc:"Branch Splice 1-50 Pairs",uom:"Per Pair",prime:2.59,pay:1.68,keep:0.91},
+    {unit:"NS04B",desc:"Branch Splice 51-300 Pairs",uom:"Per Pair",prime:2.46,pay:1.60,keep:0.86},
+    {unit:"NS04C",desc:"Branch Splice >300 Pairs",uom:"Per Pair",prime:2.51,pay:1.63,keep:0.88},
+    {unit:"NS04D",desc:"Branch Splice - 10 Pair Minimum",uom:"Per Pair",prime:50.05,pay:30.30,keep:19.75},
+    {unit:"NS07B",desc:"Terminate Pairs",uom:"Per Pair",prime:2.51,pay:1.63,keep:0.88},
+    {unit:"NS08A",desc:"Cable Transfer (POTS)",uom:"Per Pair",prime:7.70,pay:5.01,keep:2.69},
+    {unit:"NS08B",desc:"Cable Transfer (Special Circuits)",uom:"Per Pair",prime:11.55,pay:7.51,keep:4.04},
+    {unit:"NS10A",desc:"Clear & Cap / Bunch & Ground",uom:"Per Pair",prime:1.61,pay:1.05,keep:0.56},
+    {unit:"NS10D",desc:"Trim Out",uom:"Per Pair",prime:1.58,pay:1.03,keep:0.55},
+    {unit:"NS10E",desc:"Trim Out - 10 Pair Minimum",uom:"Per Location",prime:275.80,pay:165.48,keep:110.32},
+    {unit:"NS12A",desc:"Place Closure - Ready Access",uom:"EA",prime:115.50,pay:69.30,keep:46.20},
+    {unit:"NS12B",desc:"Rearrange Closure - Ready Access",uom:"EA",prime:115.50,pay:69.30,keep:46.20},
+    {unit:"NS12C",desc:"Place Closure - Non Ready",uom:"EA",prime:192.50,pay:115.50,keep:77.00},
+    {unit:"NS12F",desc:"Open & Close Closure",uom:"Per Closure",prime:275.80,pay:165.48,keep:110.32},
+    {unit:"NS13C",desc:"Place Fixed Count Terminal",uom:"EA",prime:93.10,pay:55.86,keep:37.24},
+    {unit:"NS14B",desc:"Replace Protector / NID",uom:"EA",prime:58.10,pay:34.86,keep:23.24},
+    {unit:"NS14C",desc:"Rehab Customer Station",uom:"EA",prime:275.80,pay:165.48,keep:110.32},
+    {unit:"NS72A",desc:"Manhole Setup",uom:"EA",prime:315.00,pay:173.25,keep:141.75},
+    {unit:"NP93E",desc:"Cut & Remove Asphalt (0-100 SF)",uom:"SQFT",prime:4.97,pay:3.23,keep:1.74},
+    {unit:"NP93F",desc:"Cut & Remove Asphalt (101-500 SF)",uom:"SQFT",prime:5.60,pay:3.64,keep:1.96},
+    {unit:"NP93H",desc:"Place Asphalt (<100 SF)",uom:"SQFT",prime:4.20,pay:2.73,keep:1.47},
+    {unit:"NP91A",desc:"Raise / Lower Manhole to Grade",uom:"EA",prime:1293.60,pay:646.80,keep:646.80},
+    {unit:"NP58B",desc:"Place/Replace Handhole (<=2\'x3\')",uom:"EA",prime:315.00,pay:173.25,keep:141.75},
+    {unit:"NP58D",desc:"Place/Replace Handhole (>2\'x3\')",uom:"EA",prime:507.50,pay:253.75,keep:253.75},
+    {unit:"NP61A",desc:"Place Pedestal",uom:"EA",prime:43.40,pay:23.87,keep:19.53},
+    {unit:"NP61B",desc:"Remove Pedestal",uom:"EA",prime:32.90,pay:18.10,keep:14.80},
+    {unit:"NP43C",desc:"Place Fiber in Conduit",uom:"FT",prime:1.47,pay:0.81,keep:0.66},
+    {unit:"NP43D",desc:"Place Copper in Conduit <=1.5\"",uom:"FT",prime:1.45,pay:0.80,keep:0.65},
+    {unit:"NP71B",desc:"Backfill / Compaction Only",uom:"FT",prime:2.03,pay:1.12,keep:0.91},
+    {unit:"NTE1",desc:"Trip Charge - Buried Drop / Material Delivery",uom:"EA",prime:182.00,pay:91.00,keep:91.00},
+    {unit:"NTE2",desc:"Trip Charge - One Person",uom:"EA",prime:80.00,pay:40.00,keep:40.00},
+    {unit:"NP71P",desc:"Trip Charge - Placing Crew",uom:"EA",prime:218.00,pay:109.00,keep:109.00},
+    {unit:"NTE4A",desc:"Construction Relocation - Aerial",uom:"EA",prime:280.00,pay:112.00,keep:168.00},
+    {unit:"NTE4B",desc:"Construction Relocation - Buried",uom:"EA",prime:303.00,pay:121.20,keep:181.80},
+    {unit:"NTE5",desc:"Call-Out - Construction Crew (After Hours)",uom:"EA",prime:788.00,pay:236.40,keep:551.60},
+    {unit:"NT50",desc:"2-Man Flagging Crew",uom:"HR",prime:60.00,pay:30.00,keep:30.00},
+    {unit:"NT50OT",desc:"2-Man Flagging Crew - OT",uom:"HR",prime:80.00,pay:40.00,keep:40.00},
+    {unit:"NB70E",desc:"Directional Bore - Solid Rock",uom:"FT",prime:70.00,pay:52.50,keep:17.50},
+    {unit:"NB70F",desc:"Directional Bore - Cobblestone / Till",uom:"FT",prime:52.50,pay:39.38,keep:13.12},
+    {unit:"NBD01",desc:"Fiber Drop - Buried w/ Conduit",uom:"FT",prime:5.53,pay:3.04,keep:2.49},
+    {unit:"NBD02",desc:"Fiber Drop - Aerial",uom:"SPAN",prime:101.50,pay:55.83,keep:45.67},
+    {unit:"NBD03",desc:"Fiber Drop - Accupunch / Bore",uom:"FT",prime:15.40,pay:10.00,keep:5.40},
+    {unit:"NBD04",desc:"Fiber/Copper Drop Underground",uom:"FT",prime:1.40,pay:0.77,keep:0.63},
+    {unit:"NE10A",desc:"Large Vehicle",uom:"HR",prime:88.00,pay:44.00,keep:44.00},
+    {unit:"NE20A",desc:"Medium Vehicle",uom:"HR",prime:66.00,pay:33.00,keep:33.00},
+    {unit:"NE40A",desc:"Small Vehicle w/o Trailer",uom:"HR",prime:15.00,pay:7.50,keep:7.50},
+    {unit:"NL10A",desc:"Foreman",uom:"HR",prime:40.00,pay:20.00,keep:20.00},
+    {unit:"NL10C",desc:"Foreman - OT",uom:"HR",prime:60.00,pay:30.00,keep:30.00},
+    {unit:"NL30A",desc:"Journeyman A Copper Cable Splicer - Standard",uom:"HR",prime:38.00,pay:19.00,keep:19.00},
+    {unit:"NL40A",desc:"Journeyman B - Standard",uom:"HR",prime:38.00,pay:19.00,keep:19.00},
+    {unit:"NL50A",desc:"Laborer / Helper - Standard",uom:"HR",prime:28.00,pay:14.00,keep:14.00},
+    {unit:"NL50C",desc:"Laborer / Helper - Overtime",uom:"HR",prime:42.00,pay:21.00,keep:21.00},
+    {unit:"SEA02(>250)",desc:"Sea02 - Service Drop Aerial >250 ft",uom:"FT",prime:0.52,pay:0.43,keep:0.09},
+    {unit:"Sea02(<125)",desc:"Sea02 - Service Drop Aerial <125 ft",uom:"FT",prime:0.72,pay:0.58,keep:0.14},
+    {unit:"PM2-A",desc:"PM2-A Miscellaneous",uom:"EA",prime:4.20,pay:3.07,keep:1.13},
+  ],
+  wheeling: [
+    {unit:'FP000',desc:'FTTH - PLACE POLE MOUNTED FDH',uom:'EA',prime:214.0,pay:128.4,keep:85.6},
+    {unit:'FP001',desc:'FTTH - REMOVE POLE MOUNTED FDH',uom:'EA',prime:97.0,pay:58.2,keep:38.8},
+    {unit:'FP004',desc:'FTTH - PLACE PAD MOUNTED FDH',uom:'EA',prime:235.0,pay:141.0,keep:94.0},
+    {unit:'FP006',desc:'FTTH - REMOVE PAD MOUNTED FDH',uom:'EA',prime:225.0,pay:135.0,keep:90.0},
+    {unit:'FP010',desc:'FTTH - PLACE PAD FOR ABOVE-GROUND FDH',uom:'EA',prime:1410.0,pay:846.0,keep:564.0},
+    {unit:'FP011',desc:'FTTH - REMOVE PAD FOR ABOVE-GROUND FDH',uom:'EA',prime:338.0,pay:202.8,keep:135.2},
+    {unit:'FP015',desc:'FTTH - PLACE AERIAL TERMINAL',uom:'EA',prime:35.0,pay:26.25,keep:8.75},
+    {unit:'FP016',desc:'FTTH - REMOVE AERIAL TERMINAL',uom:'EA',prime:60.0,pay:42.0,keep:18.0},
+    {unit:'FP017',desc:'FTTH - PLACE BURIED TERMINAL',uom:'EA',prime:42.25,pay:31.68,keep:10.57},
+    {unit:'FP018',desc:'FTTH - REMOVE FIBER TERMINAL - BURIED',uom:'EA',prime:100.0,pay:75.0,keep:25.0},
+    {unit:'FP029',desc:'FTTH - PLACE BURIED/UG FIBER TERMINAL TAIL >25\' (LONGEST)',uom:'FT',prime:0.7,pay:0.52,keep:0.18},
+    {unit:'FP030',desc:'FTTH - PLACE SPLITTER ASSEMBLY',uom:'EA',prime:26.5,pay:15.9,keep:10.6},
+    {unit:'FP031',desc:'FTTH - REMOVE FIBER SPLITTER ASSEMBLY',uom:'EA',prime:24.0,pay:14.4,keep:9.6},
+    {unit:'FP032',desc:'FTTH - PLACE BURIED/UG TERMINAL TAIL >25\' (ADDITIONAL)',uom:'FT',prime:0.39,pay:0.29,keep:0.1},
+    {unit:'FP033A',desc:'FTTH - PLACE ACCESSIBLE AERIAL TERMINAL TAIL >25\' (LONGEST)',uom:'FT',prime:0.75,pay:0.56,keep:0.19},
+    {unit:'FP033B',desc:'FTTH - PLACE INACCESSIBLE AERIAL TERMINAL TAIL >25\' (LONGEST)',uom:'FT',prime:0.95,pay:0.71,keep:0.24},
+    {unit:'FP034A',desc:'FTTH - PLACE ACCESSIBLE AERIAL TERMINAL TAILS >25\' (ADDITIONAL)',uom:'FT',prime:0.35,pay:0.26,keep:0.09},
+    {unit:'FP034B',desc:'FTTH - PLACE INACCESSIBLE AERIAL TERMINAL TAILS (ADDITIONAL)',uom:'FT',prime:0.42,pay:0.32,keep:0.1},
+    {unit:'FP01A',desc:'FTTH - PLACE ACCESSIBLE POLE / PUSH BRACE',uom:'EA',prime:230.0,pay:161.0,keep:69.0},
+    {unit:'FP01B',desc:'FTTH - REMOVE POLE / PUSH BRACE',uom:'EA',prime:250.0,pay:175.0,keep:75.0},
+    {unit:'FP01C',desc:'FTTH - STRAIGHTEN / RESET POLE',uom:'EA',prime:200.0,pay:150.0,keep:50.0},
+    {unit:'FP01E',desc:'FTTH - TRANSFER PUSH BRACE',uom:'EA',prime:100.0,pay:65.0,keep:35.0},
+    {unit:'FP01G',desc:'FTTH - REMOVE KEY OR STUB',uom:'EA',prime:8.0,pay:5.2,keep:2.8},
+    {unit:'FP01H',desc:'FTTH - PLACE INACCESSIBLE POLE / PUSH BRACE',uom:'EA',prime:525.0,pay:315.0,keep:210.0},
+    {unit:'FP03A',desc:'FTTH - POLES / JOINT USE - PLACE / RESET',uom:'EA',prime:660.0,pay:396.0,keep:264.0},
+    {unit:'FP03B',desc:'FTTH - POLES / JOINT USE - REMOVAL ONLY',uom:'EA',prime:410.0,pay:246.0,keep:164.0},
+    {unit:'FP04A',desc:'FTTH - PLACE POLE STEPS',uom:'EA',prime:110.0,pay:71.5,keep:38.5},
+    {unit:'FP05A',desc:'FTTH - TRANSFER ATTACHMENTS',uom:'EA',prime:70.0,pay:45.5,keep:24.5},
+    {unit:'FP07A',desc:'FTTH - PLACE ANCHOR / GUY',uom:'EA',prime:165.0,pay:108.9,keep:56.1},
+    {unit:'FP07B',desc:'FTTH - REMOVE ANCHOR & GUY',uom:'EA',prime:33.5,pay:21.78,keep:11.72},
+    {unit:'FP08A',desc:'FTTH - PLACE DOWN GUY (ONLY)',uom:'EA',prime:42.0,pay:27.3,keep:14.7},
+    {unit:'FP09A',desc:'FTTH - PLACE ANCHOR - SOLID ROCK',uom:'EA',prime:325.0,pay:214.5,keep:110.5},
+    {unit:'FP09B',desc:'FTTH - PLACE POLE - SOLID ROCK',uom:'EA',prime:750.0,pay:450.0,keep:300.0},
+    {unit:'FP11B',desc:'FTTH - PLACE ARMS (ALL TYPES/SIZE)',uom:'EA',prime:60.0,pay:39.0,keep:21.0},
+    {unit:'FP11C',desc:'FTTH - TRANSFER ARMS (ALL TYPES/SIZE)',uom:'EA',prime:60.0,pay:39.0,keep:21.0},
+    {unit:'FP11D',desc:'FTTH - REMOVE ARMS (ALL TYPES/SIZE)',uom:'EA',prime:40.0,pay:26.0,keep:14.0},
+    {unit:'FP16D',desc:'FTTH - POLE GROUND (VERTICAL ONLY, NO OTHER ACTIVITY)',uom:'EA',prime:55.0,pay:35.75,keep:19.25},
+    {unit:'FP18A',desc:'FTTH - PLACE STRAND (ALL SIZES)',uom:'FT',prime:0.56,pay:0.47,keep:0.09},
+    {unit:'FP18B',desc:'FTTH - REMOVE STRAND (ALL SIZES)',uom:'FT',prime:0.37,pay:0.28,keep:0.09},
+    {unit:'FP22B',desc:'FTTH - RE-SAG AERIAL CABLE',uom:'SP',prime:70.0,pay:49.0,keep:21.0},
+    {unit:'FP22D',desc:'FTTH - PLACE ACCESSIBLE AERIAL CABLE <1.5" (NEW STRAND)',uom:'FT',prime:0.7,pay:0.53,keep:0.17},
+    {unit:'FP22E',desc:'FTTH - PLACE ACCESSIBLE AERIAL CABLE >1.6" (NEW STRAND)',uom:'FT',prime:0.85,pay:0.64,keep:0.21},
+    {unit:'FP22F',desc:'FTTH - REMOVE AERIAL CABLE <1.5"',uom:'FT',prime:0.5,pay:0.35,keep:0.15},
+    {unit:'FP22G',desc:'FTTH - REMOVE AERIAL CABLE >1.6"',uom:'FT',prime:0.7,pay:0.49,keep:0.21},
+    {unit:'FP22J',desc:'FTTH - DELASH / RELASH ACCESSIBLE CABLE (MORE THAN 3 CABLES)',uom:'FT',prime:1.08,pay:0.76,keep:0.32},
+    {unit:'FP22K',desc:'FTTH - PLACE ADDITIONAL ACCESSIBLE AERIAL CABLE / SUB-DUCT',uom:'FT',prime:0.35,pay:0.26,keep:0.09},
+    {unit:'FP22L',desc:'FTTH - PLACE ACCESSIBLE AERIAL CABLE <1.5" (EXISTING STRAND)',uom:'FT',prime:0.92,pay:0.69,keep:0.23},
+    {unit:'FP22M',desc:'FTTH - PLACE ACCESSIBLE AERIAL CABLE >1.6" (EXISTING STRAND)',uom:'FT',prime:0.95,pay:0.71,keep:0.24},
+    {unit:'FP22N',desc:'FTTH - PLACE ACCESSIBLE AERIAL SUBDUCT (NEW STRAND)',uom:'FT',prime:0.9,pay:0.68,keep:0.22},
+    {unit:'FP22O',desc:'FTTH - PLACE ACCESSIBLE AERIAL SUBDUCT (EXISTING STRAND)',uom:'FT',prime:0.95,pay:0.71,keep:0.24},
+    {unit:'FP23D',desc:'FTTH - PLACE INACCESSIBLE AERIAL CABLE <1.5" (NEW STRAND)',uom:'FT',prime:0.9,pay:0.68,keep:0.22},
+    {unit:'FP23E',desc:'FTTH - PLACE INACCESSIBLE AERIAL CABLE >1.6" (NEW STRAND)',uom:'FT',prime:1.1,pay:0.83,keep:0.27},
+    {unit:'FP23F',desc:'FTTH - PLACE INACCESSIBLE AERIAL CABLE <1.5" (EXISTING STRAND)',uom:'FT',prime:1.05,pay:0.79,keep:0.26},
+    {unit:'FP23G',desc:'FTTH - PLACE INACCESSIBLE AERIAL CABLE >1.6" (EXISTING STRAND)',uom:'FT',prime:1.08,pay:0.81,keep:0.27},
+    {unit:'FP23H',desc:'FTTH - PLACE INACCESSIBLE AERIAL SUBDUCT (NEW STRAND)',uom:'FT',prime:1.05,pay:0.79,keep:0.26},
+    {unit:'FP23J',desc:'FTTH - DELASH / RELASH INACCESSIBLE CABLE (REAR EASEMENT)',uom:'FT',prime:1.0,pay:0.7,keep:0.3},
+    {unit:'FP23K',desc:'FTTH - PLACE ADDITIONAL INACCESSIBLE AERIAL CABLE / SUBDUCT',uom:'FT',prime:0.62,pay:0.47,keep:0.15},
+    {unit:'FP27A',desc:'FTTH - PLACE HOUSE / BLOCK CABLE',uom:'FT',prime:1.1,pay:0.83,keep:0.27},
+    {unit:'FP27B',desc:'FTTH - REMOVE HOUSE / BLOCK CABLE',uom:'FT',prime:1.0,pay:0.7,keep:0.3},
+    {unit:'FP43B',desc:'FTTH - REMOVE UNDERGROUND CABLE / SUB-DUCT',uom:'FT',prime:0.72,pay:0.54,keep:0.18},
+    {unit:'FP43F',desc:'FTTH - PLACE FIBER CABLE IN CONDUIT',uom:'FT',prime:1.48,pay:1.11,keep:0.37},
+    {unit:'FP43H',desc:'FTTH - PULL CABLE IN OCCUPIED DUCT',uom:'FT',prime:1.75,pay:1.22,keep:0.53},
+    {unit:'FP47A',desc:'FTTH - CLEAR RIGHT-OF-WAY',uom:'FT',prime:2.55,pay:1.53,keep:1.02},
+    {unit:'FP47B',desc:'FTTH - TREE TRIMMING / BRUSHING',uom:'FT',prime:2.05,pay:1.23,keep:0.82},
+    {unit:'FP47C',desc:'FTTH - TREE TRIMMING / BRUSHING (POWER ZONE)',uom:'FT',prime:3.25,pay:1.95,keep:1.3},
+    {unit:'FP49A',desc:'FTTH - PLACE CABLE / DUCT IN OPEN TRENCH',uom:'FT',prime:0.85,pay:0.59,keep:0.26},
+    {unit:'FP49B',desc:'FTTH - PLACE ADDITIONAL CABLE / DUCT',uom:'FT',prime:0.57,pay:0.39,keep:0.18},
+    {unit:'FP49C',desc:'FTTH - MICRO-TRENCH (BASE UNIT)',uom:'FT',prime:33.0,pay:23.1,keep:9.9},
+    {unit:'FP49D',desc:'FTTH - MICRO-TRENCH ADD INNERDUCTS',uom:'FT',prime:0.65,pay:0.45,keep:0.2},
+    {unit:'FP49E',desc:'FTTH - MICRO-TRENCH SURFACE RESTORATION',uom:'FT',prime:3.5,pay:2.45,keep:1.05},
+    {unit:'FP50P',desc:'FTTH - PLACE TEMPORARY CABLE',uom:'FT',prime:0.38,pay:0.29,keep:0.09},
+    {unit:'FP50R',desc:'FTTH - REMOVE TEMPORARY CABLE',uom:'FT',prime:0.35,pay:0.25,keep:0.1},
+    {unit:'FP51A',desc:'FTTH - PLOW CABLE <=1.5" (<=1000\')',uom:'FT',prime:5.25,pay:3.41,keep:1.84},
+    {unit:'FP51B',desc:'FTTH - PLOW CABLE <=1.5" (>1000\')',uom:'FT',prime:4.65,pay:3.02,keep:1.63},
+    {unit:'FP51C',desc:'FTTH - PLOW CABLE 1.6"-3" (<=1000\')',uom:'FT',prime:5.85,pay:3.8,keep:2.05},
+    {unit:'FP51D',desc:'FTTH - PLOW CABLE 1.6"-3" (>1000\')',uom:'FT',prime:5.75,pay:3.74,keep:2.01},
+    {unit:'FP51E',desc:'FTTH - PLOW ADDITIONAL DEPTH (6" INCREMENT)',uom:'FT',prime:0.6,pay:0.37,keep:0.23},
+    {unit:'FP51F',desc:'FTTH - PLOW ADDITIONAL CABLE / SUB-DUCT',uom:'FT',prime:1.1,pay:0.68,keep:0.42},
+    {unit:'FP52A',desc:'FTTH - PRERIPPING',uom:'FT',prime:0.8,pay:0.5,keep:0.3},
+    {unit:'FP54A',desc:'FTTH - TRENCH (<=1000\')',uom:'FT',prime:6.25,pay:4.06,keep:2.19},
+    {unit:'FP54B',desc:'FTTH - TRENCH (>1000\')',uom:'FT',prime:5.25,pay:3.41,keep:1.84},
+    {unit:'FP54C',desc:'FTTH - TRENCH ADDITIONAL DEPTH (6" INCREMENT)',uom:'FT',prime:1.05,pay:0.65,keep:0.4},
+    {unit:'FP55A',desc:'FTTH - BACKHOE BURIED CABLE (<=36")',uom:'FT',prime:7.25,pay:4.71,keep:2.54},
+    {unit:'FP55B',desc:'FTTH - BACKHOE ADDITIONAL DEPTH (12" INCREMENT)',uom:'FT',prime:1.25,pay:0.78,keep:0.47},
+    {unit:'FP57A',desc:'FTTH - HAND DIG TRENCH',uom:'FT',prime:7.55,pay:4.53,keep:3.02},
+    {unit:'FP58A',desc:'FTTH - PLACE SMALL UTILITY ACCESS BOX',uom:'EA',prime:26.0,pay:18.2,keep:7.8},
+    {unit:'FP58B',desc:'FTTH - PLACE / CHANGE GRADE HANDHOLE (<=2\'x3\')',uom:'EA',prime:260.0,pay:182.0,keep:78.0},
+    {unit:'FP58C',desc:'FTTH - REMOVE HANDHOLE (<=2\'x3\')',uom:'EA',prime:155.0,pay:105.4,keep:49.6},
+    {unit:'FP58D',desc:'FTTH - PLACE / CHANGE GRADE HANDHOLE (>2\'x3\')',uom:'EA',prime:425.0,pay:297.5,keep:127.5},
+    {unit:'FP58E',desc:'FTTH - REMOVE HANDHOLE (>2\'x3\')',uom:'EA',prime:300.0,pay:204.0,keep:96.0},
+    {unit:'FP59A',desc:'FTTH - BORE (2")',uom:'FT',prime:10.0,pay:7.5,keep:2.5},
+    {unit:'FP59B',desc:'FTTH - BORE (4")',uom:'FT',prime:10.5,pay:7.88,keep:2.62},
+    {unit:'FP59C',desc:'FTTH - BORE (5"-8")',uom:'FT',prime:17.5,pay:13.13,keep:4.37},
+    {unit:'FP59P',desc:'FTTH - ACCUPUNCH',uom:'FT',prime:11.0,pay:8.25,keep:2.75},
+    {unit:'FP59U',desc:'FTTH - UNSUCCESSFUL BORE',uom:'EA',prime:235.0,pay:105.75,keep:129.25},
+    {unit:'FP61A',desc:'FTTH - PLACE PEDESTAL',uom:'EA',prime:58.0,pay:40.6,keep:17.4},
+    {unit:'FP61B',desc:'FTTH - REMOVE PEDESTAL',uom:'EA',prime:50.0,pay:27.5,keep:22.5},
+    {unit:'FP61C',desc:'FTTH - REARRANGE / CHANGE OUT PEDESTAL',uom:'EA',prime:62.5,pay:43.75,keep:18.75},
+    {unit:'FP70E',desc:'FTTH - DIRECTIONAL BORE SOLID ROCK',uom:'FT',prime:65.25,pay:48.94,keep:16.31},
+    {unit:'FP70G',desc:'FTTH - DIRECTIONAL BORE COBBLE / GLACIAL TILL',uom:'FT',prime:31.0,pay:23.25,keep:7.75},
+    {unit:'FP71P',desc:'FTTH - TRIP CHARGE AERIAL PLACING CREW',uom:'EA',prime:255.0,pay:127.5,keep:127.5},
+    {unit:'FP71Q',desc:'FTTH - TRIP CHARGE BURIED / UG PLACING CREW',uom:'EA',prime:255.0,pay:127.5,keep:127.5},
+    {unit:'FP72A',desc:'FTTH - TAG EXISTING TERMINAL / POLE',uom:'EA',prime:15.0,pay:9.0,keep:6.0},
+    {unit:'FP73A',desc:'FTTH - SPLICE PIT',uom:'EA',prime:355.0,pay:195.25,keep:159.75},
+    {unit:'FP73B',desc:'FTTH - WELL POINT',uom:'EA',prime:175.0,pay:113.75,keep:61.25},
+    {unit:'FP73C',desc:'FTTH - SHORING',uom:'EA',prime:175.0,pay:113.75,keep:61.25},
+    {unit:'FP73D',desc:'FTTH - POTHOLE',uom:'EA',prime:235.0,pay:152.75,keep:82.25},
+    {unit:'FP77A',desc:'FTTH - CORE DRILL MANHOLE WALL',uom:'EA',prime:178.0,pay:115.7,keep:62.3},
+    {unit:'FP77B',desc:'FTTH - CORE DRILL MANHOLE WALL ADDITIONAL HOLE',uom:'EA',prime:105.0,pay:68.25,keep:36.75},
+    {unit:'FP85A',desc:'FTTH - PLACE BRIDGE ATTACHMENT CONDUIT',uom:'FT',prime:16.0,pay:11.2,keep:4.8},
+    {unit:'FP85B',desc:'FTTH - REMOVE BRIDGE ATTACHMENTS',uom:'FT',prime:13.0,pay:9.1,keep:3.9},
+    {unit:'FP87A',desc:'FTTH - ROD AND MANDREL DUCT',uom:'FT',prime:1.8,pay:1.26,keep:0.54},
+    {unit:'FP87B',desc:'FTTH - PLACE PULL LINE',uom:'FT',prime:0.58,pay:0.41,keep:0.17},
+    {unit:'FP88A',desc:'FTTH - PLACE SUB-DUCT OR AIR TUBE IN CONDUIT',uom:'FT',prime:1.12,pay:0.78,keep:0.34},
+    {unit:'FP91A',desc:'FTTH - RAISE OR LOWER MANHOLE/PULL BOX TO GRADE',uom:'EA',prime:1100.0,pay:715.0,keep:385.0},
+    {unit:'FP93E',desc:'FTTH - CUT AND REMOVE ASPHALT (0-100 SF)',uom:'SQFT',prime:7.25,pay:4.71,keep:2.54},
+    {unit:'FP93F',desc:'FTTH - CUT AND REMOVE ASPHALT (0-100 SF)',uom:'SQFT',prime:7.0,pay:4.55,keep:2.45},
+    {unit:'FP93G',desc:'FTTH - CUT AND REMOVE ASPHALT (>500 SF)',uom:'SQFT',prime:6.0,pay:3.9,keep:2.1},
+    {unit:'FP93H',desc:'FTTH - PLACE ASPHALT <100 SF',uom:'SQFT',prime:7.5,pay:4.88,keep:2.62},
+    {unit:'FP93I',desc:'FTTH - PLACE ASPHALT 101-500 SF',uom:'SQFT',prime:8.5,pay:5.53,keep:2.97},
+    {unit:'FP93J',desc:'FTTH - PLACE ASPHALT >500 SF',uom:'SQFT',prime:7.75,pay:5.04,keep:2.71},
+    {unit:'FP93K',desc:'FTTH - CUT/REMOVE CONCRETE <100 SF',uom:'SQFT',prime:9.25,pay:6.01,keep:3.24},
+    {unit:'FP93L',desc:'FTTH - CUT/REMOVE CONCRETE 101-500 SF',uom:'SQFT',prime:7.75,pay:5.04,keep:2.71},
+    {unit:'FP93M',desc:'FTTH - CUT/REMOVE CONCRETE >500 SF',uom:'SQFT',prime:6.25,pay:4.06,keep:2.19},
+    {unit:'FP93N',desc:'FTTH - PLACE CONCRETE <100 SQ FT',uom:'SQFT',prime:11.75,pay:7.64,keep:4.11},
+    {unit:'FP93O',desc:'PLACE CONCRETE 101-500 SF',uom:'SQFT',prime:9.25,pay:6.01,keep:3.24},
+    {unit:'FP93P',desc:'PLACE CONCRETE >500 SF',uom:'SQFT',prime:8.0,pay:5.2,keep:2.8},
+    {unit:'FP93S',desc:'GRIND & REMOVE ASPHALT',uom:'SQFT',prime:10.25,pay:6.66,keep:3.59},
+    {unit:'FS14A',desc:'SET UP (UP TO 288)',uom:'EA',prime:150.0,pay:105.0,keep:45.0},
+    {unit:'FS14B',desc:'SET UP (>288)',uom:'EA',prime:170.0,pay:119.0,keep:51.0},
+    {unit:'FS16',desc:'REARRANGE FIBER STORAGE',uom:'EA',prime:168.0,pay:117.6,keep:50.4},
+    {unit:'FS26',desc:'ACCEPTANCE TESTING (END TO END)',uom:'EA',prime:7.75,pay:5.43,keep:2.32},
+    {unit:'FS27',desc:'ACCEPTANCE TESTING (SINGLE DIR)',uom:'EA',prime:3.55,pay:2.49,keep:1.06},
+    {unit:'FS50',desc:'SPLICE 12 FIBERS OR LESS',uom:'EA',prime:23.0,pay:16.1,keep:6.9},
+    {unit:'FS51',desc:'SPLICE 13-72 FIBERS',uom:'EA',prime:21.0,pay:14.7,keep:6.3},
+    {unit:'FS52',desc:'SPLICE 73-216 FIBERS',uom:'EA',prime:18.0,pay:11.2,keep:6.8},
+    {unit:'FS53',desc:'SPLICE 216+ FIBERS',uom:'EA',prime:16.0,pay:11.2,keep:4.8},
+    {unit:'FP71S',desc:'TRIP CHARGE - SPLICER',uom:'EA',prime:178.0,pay:89.0,keep:89.0},
+    {unit:'FS72A',desc:'MANHOLE SET-UP',uom:'EA',prime:275.0,pay:192.5,keep:82.5},
+    {unit:'FS72C',desc:'WASH/CLEAN MANHOLE',uom:'EA',prime:270.0,pay:189.0,keep:81.0},
+    {unit:'FE10A',desc:'LARGE VEHICLES (W/ TRAILERS/TOOLS)',uom:'HR',prime:78.0,pay:39.0,keep:39.0},
+    {unit:'FE20A',desc:'MEDIUM VEHICLES (W/ TRAILERS/TOOLS)',uom:'HR',prime:58.0,pay:29.0,keep:29.0},
+    {unit:'FE25A',desc:'MEDIUM VEHICLES (W/O TRAILERS/TOOLS)',uom:'HR',prime:52.75,pay:26.38,keep:26.37},
+    {unit:'FE30A',desc:'SMALL VEHICLES (W/ TRAILERS/TOOLS)',uom:'HR',prime:17.5,pay:8.75,keep:8.75},
+    {unit:'FE40A',desc:'SMALL VEHICLES (W/O TRAILERS/TOOLS)',uom:'HR',prime:13.5,pay:6.75,keep:6.75},
+    {unit:'FE99A',desc:'MUD/SLUDGE PUMP',uom:'HR',prime:4.55,pay:2.28,keep:2.27},
+    {unit:'FL10A',desc:'FOREMAN',uom:'HR',prime:37.0,pay:18.5,keep:18.5},
+    {unit:'FL30A',desc:'JOURNEYMAN "A"',uom:'HR',prime:34.5,pay:17.25,keep:17.25},
+    {unit:'FL40A',desc:'JOURNEYMAN "B"',uom:'HR',prime:33.5,pay:16.75,keep:16.75},
+    {unit:'FL50A',desc:'LABORER / HELPER',uom:'HR',prime:30.0,pay:15.0,keep:15.0},
+    {unit:'FL50G',desc:'SPLICER / HELPER',uom:'HR',prime:25.0,pay:12.5,keep:12.5},
+  ],
+  virginia: [
+    {unit:'C6M',desc:'Install 1/4" strand, incl. hardware',uom:'EA',prime:0.61,pay:0.46,keep:0.15},
+    {unit:'PM2-A',desc:'Install copper bond from strand to VGR',uom:'EA',prime:4.09,pay:3.07,keep:1.02},
+    {unit:'PE1-3',desc:'Install 1/4" down guy for strand',uom:'EA',prime:12.53,pay:9.4,keep:3.13},
+    {unit:'PM11',desc:'Install guy guard',uom:'EA',prime:3.6,pay:2.7,keep:0.9},
+    {unit:'PF3-3 Aux',desc:'Install auxiliary eye to existing anchor',uom:'EA',prime:3.6,pay:2.7,keep:0.9},
+    {unit:'PF3-3',desc:'Install 8" helical anchor',uom:'EA',prime:115.1,pay:86.33,keep:28.77},
+    {unit:'PM4',desc:'Install extension arm - 12"',uom:'EA',prime:24.06,pay:18.05,keep:6.01},
+    {unit:'PM4-A',desc:'Install extension arm - 18-24"',uom:'EA',prime:32.58,pay:24.44,keep:8.14},
+    {unit:'WD',desc:'Install spiral wind dampener',uom:'EA',prime:20.25,pay:15.19,keep:5.06},
+    {unit:'MR-S',desc:'Rearrange straight attachment',uom:'EA',prime:62.65,pay:46.99,keep:15.66},
+    {unit:'MR-C',desc:'Rearrange curved attachment',uom:'EA',prime:65.7,pay:49.28,keep:16.42},
+    {unit:'MR-DE',desc:'Rearrange deadend attachment',uom:'EA',prime:65.7,pay:49.28,keep:16.42},
+    {unit:'MR-A',desc:'Rearrange ADSS attachment',uom:'EA',prime:62.6,pay:46.95,keep:15.65},
+    {unit:'WC-1',desc:'Transfer fiber to new pole',uom:'EA',prime:62.6,pay:46.95,keep:15.65},
+    {unit:'WCT',desc:'Wreck out abandoned CATV plant',uom:'EA',prime:0.26,pay:0.2,keep:0.06},
+    {unit:'DCT',desc:'De-lash abandoned CATV plant',uom:'EA',prime:0.64,pay:0.48,keep:0.16},
+    {unit:'RCD',desc:'Remove drops from abandoned CATV plant',uom:'EA',prime:18.0,pay:13.5,keep:4.5},
+    {unit:'BFO2 VT',desc:'Install vacant duct up to 2" trench',uom:'EA',prime:2.35,pay:1.76,keep:0.59},
+    {unit:'BF02(2) VT',desc:'Second vacant duct trench',uom:'EA',prime:0.41,pay:0.31,keep:0.1},
+    {unit:'BF02 VP',desc:'Install vacant duct up to 2" plow',uom:'EA',prime:2.46,pay:1.85,keep:0.61},
+    {unit:'BM60(2)D',desc:'Directional bore duct',uom:'EA',prime:6.52,pay:4.89,keep:1.63},
+    {unit:'BM60(2)A',desc:'Add pipe to bore',uom:'EA',prime:0.94,pay:0.71,keep:0.23},
+    {unit:'BF03 VT',desc:'Install vacant duct 3" trench',uom:'EA',prime:4.15,pay:3.11,keep:1.04},
+    {unit:'BF03 VP',desc:'Install vacant duct 3" plow',uom:'EA',prime:3.15,pay:2.36,keep:0.79},
+    {unit:'BM60(3)D',desc:'Directional bore duct 3"',uom:'EA',prime:11.0,pay:8.25,keep:2.75},
+    {unit:'BM60(2)R',desc:'Rock adder for bore',uom:'EA',prime:32.0,pay:24.0,keep:8.0},
+    {unit:'BM80',desc:'Install riser guard 2-3"',uom:'EA',prime:37.1,pay:27.83,keep:9.27},
+    {unit:'BM72',desc:'Restore asphalt surface',uom:'EA',prime:24.8,pay:18.6,keep:6.2},
+    {unit:'BM73',desc:'Restore concrete surface',uom:'EA',prime:24.8,pay:18.6,keep:6.2},
+    {unit:'BD5RL',desc:'Install above ground pedestal',uom:'EA',prime:53.26,pay:39.95,keep:13.31},
+    {unit:'BDV',desc:'Install below grade vault <=24x36',uom:'EA',prime:180.0,pay:135.0,keep:45.0},
+    {unit:'BDVL',desc:'Install below grade vault >24x36',uom:'EA',prime:235.0,pay:176.25,keep:58.75},
+    {unit:'CO(count)',desc:'Install first fiber on strand',uom:'EA',prime:0.79,pay:0.59,keep:0.2},
+    {unit:'CO(count)D',desc:'Install second fiber on strand',uom:'EA',prime:0.62,pay:0.47,keep:0.15},
+    {unit:'CO(count)E',desc:'Overlash additional fiber',uom:'EA',prime:0.79,pay:0.59,keep:0.2},
+    {unit:'HO1 (1-12)',desc:'Fusion splice per fiber (1-12)',uom:'EA',prime:21.0,pay:15.75,keep:5.25},
+    {unit:'HO1 (13-48)',desc:'Fusion splice per fiber (13-48)',uom:'EA',prime:20.0,pay:15.0,keep:5.0},
+    {unit:'HO1 (49-96)',desc:'Fusion splice per fiber (49-96)',uom:'EA',prime:19.0,pay:14.25,keep:4.75},
+    {unit:'HO1 (>96)',desc:'Fusion splice per fiber (>96)',uom:'EA',prime:18.0,pay:13.5,keep:4.5},
+    {unit:'HO1T',desc:'Test fiber after splicing',uom:'EA',prime:6.04,pay:4.53,keep:1.51},
+    {unit:'SEA02 (<125)',desc:'Aerial drop <125\'',uom:'EA',prime:0.77,pay:0.58,keep:0.19},
+    {unit:'SEA02 (<250)',desc:'Aerial drop <250\'',uom:'EA',prime:0.73,pay:0.55,keep:0.18},
+    {unit:'SEA02 (>250)',desc:'Aerial drop >250\'',uom:'EA',prime:0.57,pay:0.43,keep:0.14},
+    {unit:'SEB02',desc:'UG drop 12" depth',uom:'EA',prime:1.25,pay:0.94,keep:0.31},
+    {unit:'TEMP',desc:'Temporary drop above ground',uom:'EA',prime:0.15,pay:0.11,keep:0.04},
+    {unit:'EAS',desc:'Emergency assessment supervisor',uom:'EA',prime:34.08,pay:25.56,keep:8.52},
+    {unit:'EACA',desc:'Emergency assessment aerial crew',uom:'EA',prime:103.0,pay:77.25,keep:25.75},
+    {unit:'EACU',desc:'Emergency assessment underground crew',uom:'EA',prime:97.0,pay:72.75,keep:24.25},
+    {unit:'BM50',desc:'Install riser guard 1"',uom:'EA',prime:13.1,pay:9.83,keep:3.27},
+    {unit:'WP-Trim',desc:'Aerial ROW clearing',uom:'EA',prime:510.0,pay:382.5,keep:127.5},
+    {unit:'BH-ROW',desc:'Bush hog ROW',uom:'EA',prime:1.07,pay:0.8,keep:0.27},
+    {unit:'UG ROW',desc:'UG ROW clearing',uom:'EA',prime:1.8,pay:1.35,keep:0.45},
+  ],
+  allpoints: [
+    {unit:'C6M',desc:'Install 1/4" strand, incl. hardware',uom:'FT',prime:0.61,pay:0.46,keep:0.15},
+    {unit:'PM2-A',desc:'Install copper bond from strand to VGR',uom:'EA',prime:4.0,pay:3.07,keep:0.93},
+    {unit:'ZD-00001',desc:'Aerial Service Drop Placement <= 500\'',uom:'FT',prime:0.77,pay:0.58,keep:0.19},
+    {unit:'ZD-00002',desc:'Aerial Service Drop Placement 500\'-1000\'',uom:'FT',prime:0.77,pay:0.57,keep:0.2},
+    {unit:'ZD-00013',desc:'Plowing <= 1.5" Direct w/ Traceable Mule Tape',uom:'FT',prime:6.0,pay:2.46,keep:3.54},
+    {unit:'ZD-00014',desc:'Plowing <= 1.5" Direct w/ Mule Tape (Driveway)',uom:'FT',prime:10.0,pay:3.15,keep:6.85},
+    {unit:'ZD-00027',desc:'Temporary Drop Installation',uom:'HR',prime:75.0,pay:0.15,keep:74.85},
+    {unit:'ZD-00028',desc:'Fiber Restoration - Asphalt / Concrete',uom:'HR',prime:70.0,pay:18.6,keep:51.4},
+    {unit:'ZD-00029',desc:'Fiber Restoration - Landscaping / Sod',uom:'HR',prime:70.0,pay:18.6,keep:51.4},
+    {unit:'ZD-00006',desc:'Minor (Directional Bore)',uom:'FT',prime:95.0,pay:4.89,keep:90.11},
+    {unit:'ZD-00007',desc:'Major (Directional Bore)',uom:'FT',prime:140.0,pay:8.25,keep:131.75},
+    {unit:'ZD-00008',desc:'Bore - Offset / Driveway / Streets',uom:'FT',prime:110.0,pay:4.89,keep:105.11},
+  ],
+};
+
+// ============================================================
+// STATE
+// ============================================================
+const RETAINER_THRESHOLD = 25000;
+const RETAINER_RATE = 0.10;
+
+// ============================================================
+// PERSISTENCE — localStorage
+// ============================================================
+const STORAGE_KEY = 'ftr_tracker_v4';
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ db, sites, crews }));
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (saved.db) db = saved.db;
+    if (saved.crews && saved.crews.length) crews = saved.crews;
+    if (saved.sites && saved.sites.length) {
+      // Merge: keep saved sites, but add any default sites not already present
+      const savedIds = new Set(saved.sites.map(s => s.id));
+      const savedNames = new Set(saved.sites.map(s => s.name));
+      const defaults = [
+        { id: 's1', name: 'Beckley',    abbr: 'BCK', client: '', priceList: 'beckley',   state: 'WV' , lastInvoice: 0},
+        { id: 's2', name: 'Charleston', abbr: 'CHS', client: '', priceList: 'wheeling',  state: 'WV' , lastInvoice: 0},
+        { id: 's3', name: 'Wheeling',   abbr: 'WHL', client: '', priceList: 'wheeling',  state: 'WV' , lastInvoice: 0},
+        { id: 's4', name: 'REC',        abbr: 'REC', client: '', priceList: 'virginia',  state: 'VA' , lastInvoice: 0},
+        { id: 's5', name: 'CVEC',       abbr: 'CVE', client: '', priceList: 'virginia',  state: 'VA' , lastInvoice: 0},
+        { id: 's6', name: 'All Points', abbr: 'ALP', client: '', priceList: 'allpoints', state: 'VA' , lastInvoice: 0},
+      ];
+      // Carry lastInvoice from saved into defaults for merging
+      const missing = defaults.filter(d => !savedIds.has(d.id) && !savedNames.has(d.name));
+      // Ensure saved sites have lastInvoice field
+      const mergedSaved = saved.sites.map(s => ({ lastInvoice: 0, ...s }));
+      sites = [...mergedSaved, ...missing];
+    }
+    return true;
+  } catch(e) { console.warn('Load failed:', e); return false; }
+}
+
+let db = {}; // { 'YYYY-MM-DD': [entries] }
+
+let sites = [
+  { id: 's1', name: 'Beckley',    abbr: 'BCK', client: '', priceList: 'beckley',  state: 'WV' , lastInvoice: 0},
+  { id: 's2', name: 'Charleston', abbr: 'CHS', client: '', priceList: 'wheeling', state: 'WV' , lastInvoice: 0},
+  { id: 's3', name: 'Wheeling',   abbr: 'WHL', client: '', priceList: 'wheeling', state: 'WV' , lastInvoice: 0},
+  { id: 's4', name: 'REC',        abbr: 'REC', client: '', priceList: 'virginia', state: 'VA' , lastInvoice: 0},
+  { id: 's5', name: 'CVEC',       abbr: 'CVE', client: '', priceList: 'virginia',  state: 'VA' , lastInvoice: 0},
+  { id: 's6', name: 'All Points',  abbr: 'ALP', client: '', priceList: 'allpoints', state: 'VA' , lastInvoice: 0},
+];
+
+let crews = [
+  { id: 'c1', name: 'FoxComm', retainerCollected: 2279.32 },
+];
+
+let currentWeekOffset = 0;
+let currentPayView = 'contractor';
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = () => {
+  updateClock(); setInterval(updateClock, 1000);
+  loadState();
+  populateSiteSelects();
+  populateCrewSelects();
+  renderContractorGrid();
+  renderSiteGrid();
+  setToday();
+  goThisWeek();
+};
+
+function updateClock() {
+  document.getElementById('clockDisplay').textContent =
+    new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function buildInvoiceNumber(siteId, num) {
+  const site = sites.find(s => s.id === siteId);
+  if (!site || !num) return '';
+  const state = site.state || 'WV';
+  const abbr = site.abbr || site.name.substring(0,3).toUpperCase();
+  const padded = String(parseInt(num)).padStart(3, '0');
+  return `${state}-${abbr}-${padded}`;
+}
+
+function nextJob() {
+  const currentInv = document.getElementById('invoiceNo').value;
+  const currentNum = parseInt(currentInv) || 0;
+  const nextInv = currentNum + 1;
+  const siteId = document.getElementById('entrySite').value;
+
+  // Save lastInvoice to site
+  const site = sites.find(s => s.id === siteId);
+  if (site) {
+    site.lastInvoice = currentNum;
+    saveState();
+  }
+
+  document.getElementById('entryAddress').value = '';
+  document.getElementById('invoiceNo').value = nextInv;
+  document.getElementById('unitCode').value = '';
+  document.getElementById('unitCodeSearch').value = '';
+  document.getElementById('unitDesc').value = '';
+  document.getElementById('unitUOM').value = '';
+  document.getElementById('qty').value = '';
+  document.getElementById('unitPreview').classList.remove('show');
+
+  updateInvoicePreview();
+  document.getElementById('entryAddress').focus();
+
+  const full = buildInvoiceNumber(siteId, nextInv);
+  showNotif(`Invoice saved — next: ${full}`);
+}
+
+function updateInvoicePreview() {
+  const siteId = document.getElementById('entrySite').value;
+  const num = document.getElementById('invoiceNo').value;
+  const site = sites.find(s => s.id === siteId);
+  const state = site ? (site.state || 'WV') : 'WV';
+  const abbr = site ? (site.abbr || '???') : '???';
+  document.getElementById('invoicePrefix').textContent = `${state}-${abbr}-`;
+  if (num) {
+    const full = buildInvoiceNumber(siteId, num);
+    document.getElementById('invoiceFull').textContent = full;
+  } else {
+    document.getElementById('invoiceFull').textContent = '';
+  }
+}
+
+function setToday() {
+  document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+  renderEntries();
+}
+
+// ============================================================
+// SITES & CREWS MANAGEMENT
+// ============================================================
+function addSite() {
+  const name = document.getElementById('newSiteName').value.trim();
+  const client = document.getElementById('newSiteClient').value.trim();
+  const pl = document.getElementById('newSitePriceList').value;
+  const state = document.getElementById('newSiteState').value;
+  if (!name) { showNotif('Enter a site name'); return; }
+  const abbr = document.getElementById('newSiteAbbr').value.trim().toUpperCase() || name.substring(0,3).toUpperCase();
+  sites.push({ id: 's'+Date.now(), name, abbr, client, priceList: pl, state });
+  document.getElementById('newSiteName').value = '';
+  document.getElementById('newSiteClient').value = '';
+  populateSiteSelects();
+  renderSiteGrid();
+  saveState();
+  showNotif(`Site "${name}" added`);
+}
+
+function addCrew() {
+  const name = document.getElementById('newCrewName').value.trim();
+  const ret = parseFloat(document.getElementById('newCrewRetainer').value) || 0;
+  if (!name) { showNotif('Enter a crew name'); return; }
+  crews.push({ id: 'c'+Date.now(), name, retainerCollected: ret });
+  document.getElementById('newCrewName').value = '';
+  document.getElementById('newCrewRetainer').value = '';
+  populateCrewSelects();
+  renderContractorGrid();
+  saveState();
+  showNotif(`Crew "${name}" added`);
+}
+
+function deleteSite(id) {
+  if (!confirm('Remove this site?')) return;
+  sites = sites.filter(s => s.id !== id);
+  populateSiteSelects(); renderSiteGrid(); saveState();
+}
+
+function deleteCrew(id) {
+  if (!confirm('Remove this crew?')) return;
+  crews = crews.filter(c => c.id !== id);
+  populateCrewSelects(); renderContractorGrid(); saveState();
+}
+
+function editCrewRetainer(id) {
+  const crew = crews.find(c => c.id === id);
+  if (!crew) return;
+  const val = prompt(`Current retainer collected for ${crew.name}: $${crew.retainerCollected.toFixed(2)}\n\nEnter new amount:`, crew.retainerCollected.toFixed(2));
+  if (val === null) return;
+  crew.retainerCollected = parseFloat(val) || 0;
+  renderContractorGrid();
+  saveState();
+  showNotif(`${crew.name} retainer updated`);
+}
+
+function populateSiteSelects() {
+  const selects = ['entrySite','histSite','filterSiteToday'];
+  selects.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const val = el.value;
+    el.innerHTML = id === 'entrySite' ? '<option value="">— Select Site —</option>' : '<option value="">All Sites</option>';
+    // Group by state
+    const states = [...new Set(sites.map(s => s.state || 'WV'))].sort();
+    states.forEach(state => {
+      const stateSites = sites.filter(s => (s.state || 'WV') === state);
+      if (stateSites.length === 0) return;
+      const grp = document.createElement('optgroup');
+      grp.label = state + (state === 'WV' ? ' — Net 30' : ' — Net 14');
+      stateSites.forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.id; o.textContent = `${s.name} (${s.abbr || s.name.substring(0,3).toUpperCase()})`;
+        grp.appendChild(o);
+      });
+      el.appendChild(grp);
+    });
+    el.value = val;
+  });
+}
+
+function populateCrewSelects() {
+  const selects = ['entryCrew','histCrew','filterCrewToday'];
+  selects.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const val = el.value;
+    el.innerHTML = id === 'entryCrew' ? '<option value="">— Select Crew —</option>' : '<option value="">All Crews</option>';
+    crews.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = c.name;
+      el.appendChild(o);
+    });
+    el.value = val;
+  });
+}
+
+function renderContractorGrid() {
+  const grid = document.getElementById('contractorGrid');
+  if (!crews.length) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👷</div>No crews yet.</div>'; return; }
+  grid.innerHTML = crews.map(c => {
+    const pct = Math.min(100, (c.retainerCollected / RETAINER_THRESHOLD) * 100);
+    const remaining = Math.max(0, RETAINER_THRESHOLD - c.retainerCollected);
+    const active = remaining > 0;
+    return `<div class="contractor-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="contractor-name">👷 ${c.name}</div>
+        <div style="display:flex;gap:0.4rem;">
+          <button class="btn btn-ghost btn-sm" onclick="editCrewRetainer('${c.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCrew('${c.id}')">✕</button>
+        </div>
+      </div>
+      <div class="contractor-retainer-label">Retainer Collected</div>
+      <div class="contractor-retainer-val">$${c.retainerCollected.toFixed(2)} <span style="color:var(--muted);font-size:0.75rem">/ $${RETAINER_THRESHOLD.toLocaleString()}</span></div>
+      <div class="retainer-bar-wrap" style="margin-top:0.5rem;"><div class="retainer-bar" style="width:${pct}%"></div></div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:0.4rem;">
+        ${active ? `$${remaining.toFixed(2)} remaining until threshold` : '<span style="color:var(--accent2)">✓ Threshold met — no more retainer</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSiteGrid() {
+  const grid = document.getElementById('siteGrid');
+  if (!sites.length) { grid.innerHTML = '<div class="empty"><div class="empty-icon">📍</div>No sites yet.</div>'; return; }
+  grid.innerHTML = sites.map(s => {
+    const pl = s.priceList === 'beckley' ? 'Beckley/Charleston SOW' : s.priceList === 'wheeling' ? 'Wheeling (coming soon)' : 'Virginia (coming soon)';
+    const cls = s.name.toLowerCase().includes('wheel') ? 'site-wheeling' : s.name.toLowerCase().includes('virgin') || s.state==='VA' ? 'site-virginia' : s.name.toLowerCase().includes('charles') ? 'site-charleston' : 'site-beckley';
+    const stateColor = s.state === 'VA' ? 'var(--retainer)' : 'var(--accent2)';
+    return `<div class="site-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="site-card-name"><span class="site-badge ${cls}">${s.name}</span>
+            <span style="margin-left:0.5rem;font-size:0.72rem;font-family:'Share Tech Mono',monospace;color:${stateColor}">${s.state} · Net ${s.state==='VA'?14:30}</span>
+          </div>
+          <div class="site-card-client">${s.client || 'Prime client TBD'} <span style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--accent)">· ${s.abbr||'???'}</span></div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="deleteSite('${s.id}')">✕</button>
+      </div>
+      <div class="site-card-meta">Price List: ${pl}</div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// UNIT CODE SELECT (based on site's price list)
+// ============================================================
+function onSiteChange() {
+  updateInvoicePreview();
+  // Reset unit code search
+  const search = document.getElementById('unitCodeSearch');
+  if (search) { search.value = ''; }
+  document.getElementById('unitCode').value = '';
+  document.getElementById('unitDesc').value = '';
+  document.getElementById('unitUOM').value = '';
+  document.getElementById('unitDropdown').style.display = 'none';
+  document.getElementById('unitPreview').classList.remove('show');
+  // Load next invoice number for this site
+  const activeSiteId = document.getElementById('entrySite').value;
+  const activeSite = sites.find(s => s.id === activeSiteId);
+  if (activeSite) {
+    const next = (activeSite.lastInvoice || 0) + 1;
+    document.getElementById('invoiceNo').value = next;
+    document.getElementById('entryAddress').value = '';
+    updateInvoicePreview();
+  } else {
+    document.getElementById('invoiceNo').value = '';
+  }
+}
+
+function getActivePriceList() {
+  const siteId = document.getElementById('entrySite').value;
+  const site = sites.find(s => s.id === siteId);
+  return site ? (PRICE_LISTS[site.priceList] || []) : [];
+}
+
+function filterUnitCodes() {
+  const q = document.getElementById('unitCodeSearch').value.trim().toLowerCase();
+  showUnitDropdown(q);
+}
+
+function showUnitDropdown(q) {
+  const pl = getActivePriceList();
+  const dd = document.getElementById('unitDropdown');
+  if (!pl.length) { dd.style.display='none'; return; }
+  const query = (q !== undefined ? q : document.getElementById('unitCodeSearch').value.trim().toLowerCase());
+  const filtered = query
+    ? pl.filter(r => r.unit.toLowerCase().includes(query) || r.desc.toLowerCase().includes(query))
+    : pl;
+  if (!filtered.length) { dd.style.display='none'; return; }
+  dd.innerHTML = filtered.slice(0, 80).map(r =>
+    `<div class="unit-item" onmousedown="selectUnit('${r.unit.replace(/'/g,"\'")}')">
+      <span class="unit-item-code">${r.unit}</span>${r.desc}<span class="unit-item-uom">[${r.uom}]</span>
+    </div>`
+  ).join('');
+  dd.style.display = 'block';
+}
+
+function selectUnit(code) {
+  const pl = getActivePriceList();
+  const row = pl.find(r => r.unit === code);
+  if (!row) return;
+  document.getElementById('unitCode').value = code;
+  document.getElementById('unitCodeSearch').value = `${row.unit} — ${row.desc}`;
+  document.getElementById('unitDropdown').style.display = 'none';
+  document.getElementById('unitDesc').value = row.desc;
+  document.getElementById('unitUOM').value = row.uom;
+  document.getElementById('prev-prime').textContent = `$${row.prime.toFixed(4)}`;
+  document.getElementById('prev-pay').textContent = `$${row.pay.toFixed(4)}`;
+  document.getElementById('prev-keep').textContent = `$${row.keep.toFixed(4)}`;
+  document.getElementById('unitPreview').classList.add('show');
+  updatePreview();
+  document.getElementById('qty').focus();
+}
+
+function onUnitSelect() {
+  // legacy — kept for compatibility
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('#unitCodeSearch') && !e.target.closest('#unitDropdown')) {
+    const dd = document.getElementById('unitDropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
+
+function updatePreview() {
+  const siteId = document.getElementById('entrySite').value;
+  const site = sites.find(s => s.id === siteId);
+  const pl = site ? (PRICE_LISTS[site.priceList] || []) : [];
+  const code = document.getElementById('unitCode').value;
+  const row = pl.find(r => r.unit === code);
+  if (!row) return;
+  const qty = parseFloat(document.getElementById('qty').value) || 0;
+  document.getElementById('prev-prime-t').textContent = `$${(row.prime*qty).toFixed(2)}`;
+  document.getElementById('prev-pay-t').textContent = `$${(row.pay*qty).toFixed(2)}`;
+  document.getElementById('prev-keep-t').textContent = `$${(row.keep*qty).toFixed(2)}`;
+}
+
+// ============================================================
+// ADD ENTRY
+// ============================================================
+function addEntry() {
+  const date = document.getElementById('entryDate').value;
+  const siteId = document.getElementById('entrySite').value;
+  const crewId = document.getElementById('entryCrew').value;
+  const code = document.getElementById('unitCode').value;
+  const qty = parseFloat(document.getElementById('qty').value);
+  const address = document.getElementById('entryAddress').value.trim();
+  const invoiceRaw = document.getElementById('invoiceNo').value.trim();
+  const invoiceNo = invoiceRaw ? buildInvoiceNumber(siteId, invoiceRaw) : '—';
+
+  if (!date) { showNotif('Select a date'); return; }
+  if (!siteId) { showNotif('Select a site'); return; }
+  if (!crewId) { showNotif('Select a crew'); return; }
+  if (!code) { showNotif('Select a unit code'); return; }
+  if (!qty || qty <= 0) { showNotif('Enter a valid quantity'); return; }
+
+  const site = sites.find(s => s.id === siteId);
+  const crew = crews.find(c => c.id === crewId);
+  const pl = PRICE_LISTS[site.priceList] || [];
+  const row = pl.find(r => r.unit === code);
+  if (!row) { showNotif('Unit code not found in this site price list'); return; }
+
+  const grossPay = parseFloat((row.pay * qty).toFixed(2));
+  const remaining = Math.max(0, RETAINER_THRESHOLD - crew.retainerCollected);
+  const retainerAmt = remaining > 0 ? parseFloat((grossPay * RETAINER_RATE).toFixed(2)) : 0;
+  const netPay = parseFloat((grossPay - retainerAmt).toFixed(2));
+
+  const entry = {
+    id: Date.now(), date,
+    siteId, siteName: site.name,
+    crewId, crewName: crew.name,
+    address: address || '—',
+    invoiceNo: invoiceNo || '—',
+    unit: row.unit, desc: row.desc, uom: row.uom, qty,
+    primeRate: row.prime, payRate: row.pay, keepRate: row.keep,
+    primeTotal: parseFloat((row.prime*qty).toFixed(2)),
+    grossPay, retainerAmt, netPay,
+    keepTotal: parseFloat((row.keep*qty).toFixed(2)),
+  };
+
+  const entries = getEntries(date);
+  entries.push(entry);
+  saveEntries(date, entries);
+
+  // Reset line item fields only
+  // Only clear unit code + qty — address/invoice stay for next line item
+  document.getElementById('unitCode').value = '';
+  document.getElementById('unitCodeSearch').value = '';
+  document.getElementById('unitDesc').value = '';
+  document.getElementById('unitUOM').value = '';
+  document.getElementById('qty').value = '';
+  document.getElementById('unitPreview').classList.remove('show');
+  // Focus back to unit code search for next line item
+  document.getElementById('unitCodeSearch').focus();
+
+  renderEntries();
+  showNotif(`Added: ${row.unit} × ${qty} @ ${site.name}`);
+}
+
+function getEntries(date) { return db[date] || []; }
+function saveEntries(date, entries) { db[date] = entries; saveState(); }
+
+function getAllEntries() {
+  return Object.values(db).flat();
+}
+
+// ============================================================
+// RENDER DAILY ENTRIES
+// ============================================================
+function renderEntries() {
+  const date = document.getElementById('entryDate').value;
+  const filterSite = document.getElementById('filterSiteToday').value;
+  const filterCrew = document.getElementById('filterCrewToday').value;
+  let entries = getEntries(date);
+  if (filterSite) entries = entries.filter(e => e.siteId === filterSite);
+  if (filterCrew) entries = entries.filter(e => e.crewId === filterCrew);
+
+  const totPrime = entries.reduce((s,e)=>s+e.primeTotal,0);
+  const totPay = entries.reduce((s,e)=>s+e.netPay,0);
+  const totKeep = entries.reduce((s,e)=>s+e.keepTotal,0);
+  const totRet = entries.reduce((s,e)=>s+e.retainerAmt,0);
+
+  document.getElementById('s-count').textContent = entries.length;
+  document.getElementById('s-prime').textContent = `$${totPrime.toFixed(2)}`;
+  document.getElementById('s-pay').textContent = `$${totPay.toFixed(2)}`;
+  document.getElementById('s-keep').textContent = `$${totKeep.toFixed(2)}`;
+  document.getElementById('s-ret').textContent = `$${totRet.toFixed(2)}`;
+
+  const container = document.getElementById('entriesContainer');
+  if (!entries.length) { container.innerHTML='<div class="empty"><div class="empty-icon">📋</div>No entries yet.</div>'; return; }
+
+  let html = `<table><thead><tr>
+    <th>Site</th><th>Crew</th><th>Invoice #</th><th>Address</th><th>Unit</th><th>UOM</th>
+    <th style="text-align:right">Qty</th><th style="text-align:right">Prime</th>
+    <th style="text-align:right">Gross Pay</th><th style="text-align:right">Retainer</th>
+    <th style="text-align:right">Net Pay</th><th style="text-align:right">Keep</th><th></th>
+  </tr></thead><tbody>`;
+
+  entries.forEach(e => {
+    const sc = e.siteName.toLowerCase().includes('wheel') ? 'site-wheeling' : e.siteName.toLowerCase().includes('charles') ? 'site-charleston' : e.siteName.toLowerCase().includes('virgin') ? 'site-virginia' : 'site-beckley';
+    html += `<tr>
+      <td><span class="site-badge ${sc}">${e.siteName}</span></td>
+      <td style="font-size:0.82rem">${e.crewName}</td>
+      <td class="mono" style="color:var(--muted)">${e.invoiceNo}</td>
+      <td style="font-size:0.8rem;max-width:180px">${e.address}</td>
+      <td><span class="tag">${e.unit}</span></td>
+      <td class="mono" style="color:var(--muted);font-size:0.73rem">${e.uom}</td>
+      <td class="mono" style="text-align:right">${e.qty}</td>
+      <td class="val-prime" style="text-align:right">$${e.primeTotal.toFixed(2)}</td>
+      <td class="mono" style="text-align:right">$${e.grossPay.toFixed(2)}</td>
+      <td class="val-ret" style="text-align:right">$${e.retainerAmt.toFixed(2)}</td>
+      <td class="val-pay" style="text-align:right">$${e.netPay.toFixed(2)}</td>
+      <td class="val-keep" style="text-align:right">$${e.keepTotal.toFixed(2)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteEntry('${date}',${e.id})">✕</button></td>
+    </tr>`;
+  });
+
+  html += `<tr style="background:rgba(255,255,255,0.03);border-top:2px solid var(--border)">
+    <td colspan="7" class="mono" style="text-align:right;font-size:0.72rem;color:var(--muted)">TOTALS</td>
+    <td class="val-prime" style="text-align:right;font-weight:700">$${totPrime.toFixed(2)}</td>
+    <td colspan="2" class="val-ret" style="text-align:right">$${totRet.toFixed(2)}</td>
+    <td class="val-pay" style="text-align:right;font-weight:700">$${totPay.toFixed(2)}</td>
+    <td class="val-keep" style="text-align:right;font-weight:700">$${totKeep.toFixed(2)}</td>
+    <td></td>
+  </tr></tbody></table>`;
+  container.innerHTML = html;
+}
+
+function deleteEntry(date, id) {
+  saveEntries(date, getEntries(date).filter(e => e.id !== id));
+  renderEntries(); showNotif('Entry removed');
+}
+
+function clearDayFiltered() {
+  const date = document.getElementById('entryDate').value;
+  const filterSite = document.getElementById('filterSiteToday').value;
+  const filterCrew = document.getElementById('filterCrewToday').value;
+  if (!confirm('Clear these filtered entries?')) return;
+  let entries = getEntries(date);
+  entries = entries.filter(e => {
+    if (filterSite && e.siteId !== filterSite) return true;
+    if (filterCrew && e.crewId !== filterCrew) return true;
+    return !(filterSite || filterCrew);
+  });
+  saveEntries(date, entries);
+  renderEntries();
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function renderHistory() {
+  const filterSite = document.getElementById('histSite').value;
+  const filterCrew = document.getElementById('histCrew').value;
+  const container = document.getElementById('historyContainer');
+  const days = Object.keys(db).filter(d => db[d].length > 0).sort().reverse();
+
+  if (!days.length) { container.innerHTML='<div class="empty"><div class="empty-icon">📂</div>No history yet.</div>'; return; }
+
+  let html = '';
+  days.forEach(date => {
+    let entries = getEntries(date);
+    if (filterSite) entries = entries.filter(e => e.siteId === filterSite);
+    if (filterCrew) entries = entries.filter(e => e.crewId === filterCrew);
+    if (!entries.length) return;
+
+    const tP = entries.reduce((s,e)=>s+e.primeTotal,0);
+    const tPay = entries.reduce((s,e)=>s+e.netPay,0);
+    const tK = entries.reduce((s,e)=>s+e.keepTotal,0);
+    const label = new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+    const safe = date.replace(/-/g,'');
+
+    html += `<div class="history-day">
+      <div class="history-day-header" onclick="toggleHistory('${safe}')">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;">${label} <span style="color:var(--muted);font-weight:400;font-size:0.8rem">(${entries.length})</span></span>
+        <div style="display:flex;align-items:center;gap:1rem;">
+          <div class="pills">
+            <span class="pill prime">$${tP.toFixed(2)} prime</span>
+            <span class="pill pay">$${tPay.toFixed(2)} net</span>
+            <span class="pill keep">$${tK.toFixed(2)} keep</span>
+          </div>
+          <span class="chevron" id="chev-${safe}">▶</span>
+        </div>
+      </div>
+      <div class="history-body" id="hbody-${safe}">
+        <table><thead><tr>
+          <th>Site</th><th>Crew</th><th>Inv #</th><th>Address</th><th>Unit</th>
+          <th style="text-align:right">Qty</th><th style="text-align:right">Prime</th>
+          <th style="text-align:right">Gross</th><th style="text-align:right">Retainer</th>
+          <th style="text-align:right">Net Pay</th><th style="text-align:right">Keep</th>
+        </tr></thead><tbody>`;
+
+    entries.forEach(e => {
+      const sc = e.siteName.toLowerCase().includes('wheel') ? 'site-wheeling' : e.siteName.toLowerCase().includes('charles') ? 'site-charleston' : 'site-beckley';
+      html += `<tr>
+        <td><span class="site-badge ${sc}">${e.siteName}</span></td>
+        <td style="font-size:0.8rem">${e.crewName}</td>
+        <td class="mono" style="color:var(--muted)">${e.invoiceNo}</td>
+        <td style="font-size:0.8rem">${e.address}</td>
+        <td><span class="tag">${e.unit}</span></td>
+        <td class="mono" style="text-align:right">${e.qty}</td>
+        <td class="val-prime" style="text-align:right">$${e.primeTotal.toFixed(2)}</td>
+        <td class="mono" style="text-align:right">$${e.grossPay.toFixed(2)}</td>
+        <td class="val-ret" style="text-align:right">$${e.retainerAmt.toFixed(2)}</td>
+        <td class="val-pay" style="text-align:right">$${e.netPay.toFixed(2)}</td>
+        <td class="val-keep" style="text-align:right">$${e.keepTotal.toFixed(2)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  });
+
+  container.innerHTML = html || '<div class="empty"><div class="empty-icon">📂</div>No matching entries.</div>';
+}
+
+function toggleHistory(safe) {
+  document.getElementById('hbody-'+safe).classList.toggle('open');
+  document.getElementById('chev-'+safe).classList.toggle('open');
+}
+
+// ============================================================
+// WEEKLY PAY DETAIL
+// ============================================================
+function getWeekDates(offset) {
+  const now = new Date(), day = now.getDay();
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - (day===0?6:day-1) + offset*7);
+  return Array.from({length:7},(_,i)=>{ const d=new Date(mon); d.setDate(mon.getDate()+i); return d.toISOString().split('T')[0]; });
+}
+
+function changeWeek(dir) { currentWeekOffset+=dir; renderWeekly(); }
+function goThisWeek() { currentWeekOffset=0; renderWeekly(); }
+
+// Next Friday on or after a given date
+function nextFriday(date) {
+  const d = new Date(date);
+  const dow = d.getDay(); // 0=Sun, 5=Fri
+  const daysUntilFri = (5 - dow + 7) % 7;
+  d.setDate(d.getDate() + (daysUntilFri === 0 ? 0 : daysUntilFri));
+  return d;
+}
+
+// Calculate crew pay date for a site
+// WV: invoice = week-end Sunday, +30 days, next Friday on/after
+// VA: work week Thu-Wed, invoice = Wednesday (dates[4] in Mon-Sun week = index 2... 
+//     actually we use week-end Wed for VA which is dates[2] in a Mon-Sun array)
+//     +14 days = you get paid, crew paid the following Friday after that
+function calcPayDate(weekDates, siteState) {
+  if (siteState === 'VA') {
+    // VA week: Thu–Wed. In Mon-Sun array, Wednesday = index 2
+    const wednesdayStr = weekDates[2]; // Wed
+    const wednesday = new Date(wednesdayStr + 'T12:00:00');
+    const youGetPaid = new Date(wednesday);
+    youGetPaid.setDate(wednesday.getDate() + 14);
+    // crew gets paid the Friday AFTER you get paid
+    const nf = nextFriday(youGetPaid);
+    // if youGetPaid is itself a Friday, go to next Friday
+    const dow = youGetPaid.getDay();
+    if (dow === 5) nf.setDate(nf.getDate() + 7);
+    return nf;
+  } else {
+    // WV: invoice = Sunday (end of Mon-Sun week = index 6), +30 days, next Friday
+    const sundayStr = weekDates[6];
+    const sunday = new Date(sundayStr + 'T12:00:00');
+    const plus30 = new Date(sunday);
+    plus30.setDate(sunday.getDate() + 30);
+    return nextFriday(plus30);
+  }
+}
+
+function renderWeekly() {
+  const dates = getWeekDates(currentWeekOffset);
+  const weekEnd = new Date(dates[6]+'T12:00:00');
+  const weekStart = new Date(dates[0]+'T12:00:00');
+  const fmt = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const fmtFull = d => d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  document.getElementById('weekRange').textContent = `${fmt(weekStart)} – ${fmt(weekEnd)}, ${weekStart.getFullYear()}`;
+  document.getElementById('week-end-m').textContent = fmtFull(weekEnd);
+
+  const allEntries = dates.flatMap(d => getEntries(d));
+  const totPrime = allEntries.reduce((s,e)=>s+e.primeTotal,0);
+  const totPay = allEntries.reduce((s,e)=>s+e.netPay,0);
+  const totKeep = allEntries.reduce((s,e)=>s+e.keepTotal,0);
+  const totRet = allEntries.reduce((s,e)=>s+e.retainerAmt,0);
+
+  document.getElementById('w-count').textContent = allEntries.length;
+  document.getElementById('w-prime').textContent = `$${totPrime.toFixed(2)}`;
+  document.getElementById('w-pay').textContent = `$${totPay.toFixed(2)}`;
+  document.getElementById('w-keep').textContent = `$${totKeep.toFixed(2)}`;
+  document.getElementById('w-ret').textContent = `$${totRet.toFixed(2)}`;
+
+  buildCrewPayoutCards(dates, allEntries, weekEnd);
+  buildMyPayTable(dates, allEntries, weekEnd);
+}
+
+// ---- CREW PAYOUT CARDS ----
+function buildCrewPayoutCards(dates, allEntries, weekEnd) {
+  const container = document.getElementById('crewPayoutCards');
+  if (!allEntries.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📄</div>No entries this week.</div>';
+    return;
+  }
+
+  // Find which crews have entries this week
+  const crewIds = [...new Set(allEntries.map(e => e.crewId))];
+  if (!crewIds.length) { container.innerHTML = '<div class="empty"><div class="empty-icon">📄</div>No entries this week.</div>'; return; }
+
+  let html = '';
+  crewIds.forEach(crewId => {
+    const crew = crews.find(c => c.id === crewId);
+    if (!crew) return;
+    const crewEntries = allEntries.filter(e => e.crewId === crewId);
+    const grossPay = crewEntries.reduce((s,e)=>s+e.grossPay,0);
+    const retAmt = crewEntries.reduce((s,e)=>s+e.retainerAmt,0);
+    const netPay = crewEntries.reduce((s,e)=>s+e.netPay,0);
+    const newRetTotal = crew.retainerCollected + retAmt;
+    const retPct = Math.min(100, newRetTotal/RETAINER_THRESHOLD*100);
+    const retRemaining = Math.max(0, RETAINER_THRESHOLD - newRetTotal);
+
+    // Determine pay dates — group by site state
+    const wvEntries = crewEntries.filter(e => { const s=sites.find(x=>x.id===e.siteId); return s && s.state!=='VA'; });
+    const vaEntries = crewEntries.filter(e => { const s=sites.find(x=>x.id===e.siteId); return s && s.state==='VA'; });
+    const wvPayDate = wvEntries.length ? calcPayDate(dates, 'WV') : null;
+    const vaPayDate = vaEntries.length ? calcPayDate(dates, 'VA') : null;
+    const wvNet = wvEntries.reduce((s,e)=>s+e.netPay,0);
+    const vaNet = vaEntries.reduce((s,e)=>s+e.netPay,0);
+
+    const fmtDate = d => d ? d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}) : '—';
+
+    html += `<div class="panel" style="margin-bottom:1.2rem;">
+      <div class="panel-header" style="background:var(--surface2);">
+        <span class="panel-title" style="font-size:0.9rem;color:var(--text);">👷 ${crew.name}</span>
+        <button class="btn btn-green btn-sm" onclick="printCrewPayDetail('${crewId}')">⬇ Export PDF</button>
+      </div>
+      <div class="panel-body" style="padding:1rem 1.2rem;">
+        <!-- Summary boxes -->
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.8rem;margin-bottom:1rem;">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:0.7rem 0.9rem;">
+            <div style="font-size:0.65rem;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.3rem;">Gross Pay</div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:1.1rem;color:var(--pay);">$${grossPay.toFixed(2)}</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:0.7rem 0.9rem;">
+            <div style="font-size:0.65rem;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.3rem;">Retainer</div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:1.1rem;color:var(--retainer);">$${retAmt.toFixed(2)}</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:0.7rem 0.9rem;">
+            <div style="font-size:0.65rem;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.3rem;">Net Pay</div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:1.1rem;color:var(--accent2);">$${netPay.toFixed(2)}</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:0.7rem 0.9rem;">
+            <div style="font-size:0.65rem;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.3rem;">Retainer Balance</div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--retainer);">$${newRetTotal.toFixed(2)}</div>
+            <div class="retainer-bar-wrap"><div class="retainer-bar" style="width:${retPct}%"></div></div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:0.2rem;">${retRemaining>0?'$'+retRemaining.toFixed(2)+' left':'✓ Threshold met'}</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:0.7rem 0.9rem;">
+            <div style="font-size:0.65rem;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.3rem;">Pay Date(s)</div>
+            ${wvPayDate ? `<div style="font-size:0.75rem;color:var(--accent2);font-family:'Share Tech Mono',monospace;">WV: ${fmtDate(wvPayDate)}</div><div style="font-size:0.65rem;color:var(--muted);">$${wvNet.toFixed(2)} net</div>` : ''}
+            ${vaPayDate ? `<div style="font-size:0.75rem;color:var(--retainer);font-family:'Share Tech Mono',monospace;margin-top:0.2rem;">VA: ${fmtDate(vaPayDate)}</div><div style="font-size:0.65rem;color:var(--muted);">$${vaNet.toFixed(2)} net</div>` : ''}
+          </div>
+        </div>
+        <!-- Preview table -->
+        <div style="overflow-x:auto;">
+          <table><thead><tr>
+            <th>Date</th><th>Site</th><th>Address</th><th>Inv #</th><th>Service Code</th>
+            <th style="text-align:right">Qty</th><th style="text-align:right">Rate</th>
+            <th style="text-align:right">Amount</th><th style="text-align:right">Retainer</th>
+            <th style="text-align:right">Net Pay</th><th style="text-align:right">Pay Date</th><th style="text-align:right">Daily Total</th>
+          </tr></thead><tbody>`;
+
+    dates.forEach(date => {
+      const dayEntries = crewEntries.filter(e => e.date === date);
+      if (!dayEntries.length) return;
+      const dayNet = dayEntries.reduce((s,e)=>s+e.netPay,0);
+      const dateStr = new Date(date+'T12:00:00').toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'});
+
+      dayEntries.forEach((e,i) => {
+        const isLast = i === dayEntries.length-1;
+        const site = sites.find(s=>s.id===e.siteId);
+        const pd = site && site.state==='VA' ? vaPayDate : wvPayDate;
+        const pdStr = pd ? pd.toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'}) : '—';
+        const sc = e.siteName.toLowerCase().includes('wheel') ? 'site-wheeling' : e.siteName.toLowerCase().includes('charles') ? 'site-charleston' : e.siteName.toLowerCase().includes('virgin') || (site&&site.state==='VA') ? 'site-virginia' : 'site-beckley';
+        html += `<tr>
+          <td class="mono" style="font-size:0.78rem">${dateStr}</td>
+          <td><span class="site-badge ${sc}">${e.siteName}</span></td>
+          <td style="font-size:0.8rem">${e.address}</td>
+          <td class="mono" style="color:var(--muted)">${e.invoiceNo}</td>
+          <td><span class="tag">${e.unit}</span></td>
+          <td class="mono" style="text-align:right">${e.qty}</td>
+          <td class="mono" style="text-align:right">$${e.payRate.toFixed(2)}</td>
+          <td class="mono" style="text-align:right">$${e.grossPay.toFixed(2)}</td>
+          <td class="val-ret" style="text-align:right">$${e.retainerAmt.toFixed(2)}</td>
+          <td class="val-pay" style="text-align:right">$${e.netPay.toFixed(2)}</td>
+          <td class="mono" style="text-align:right;font-size:0.75rem;color:var(--accent2)">${pdStr}</td>
+          <td class="val-keep" style="text-align:right;font-weight:700">${isLast?'$'+dayNet.toFixed(2):''}</td>
+        </tr>`;
+      });
+      html += `<tr style="height:4px;background:rgba(0,0,0,0.3)"><td colspan="12"></td></tr>`;
+    });
+
+    html += `<tr style="background:var(--surface2);border-top:2px solid var(--accent2)">
+      <td colspan="5" class="mono" style="font-size:0.75rem;color:var(--muted);">WEEK TOTAL — ${crew.name}</td>
+      <td colspan="2"></td>
+      <td class="mono" style="text-align:right;color:var(--pay)">$${grossPay.toFixed(2)}</td>
+      <td class="val-ret" style="text-align:right">$${retAmt.toFixed(2)}</td>
+      <td class="val-pay" style="text-align:right;font-weight:700">$${netPay.toFixed(2)}</td>
+      <td colspan="2"></td>
+    </tr>`;
+
+    html += `</tbody></table></div></div></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// ---- MY PRODUCTIVITY TABLE (on-screen preview) ----
+function buildMyPayTable(dates, allEntries, weekEnd) {
+  const container = document.getElementById('myPayTable');
+  if (!allEntries.length) { container.innerHTML='<div class="empty"><div class="empty-icon">📄</div>No entries this week.</div>'; return; }
+
+  const crewIds = [...new Set(allEntries.map(e=>e.crewId))];
+  let html = '';
+
+  crewIds.forEach(crewId => {
+    const crew = crews.find(c=>c.id===crewId);
+    if (!crew) return;
+    const crewEntries = allEntries.filter(e=>e.crewId===crewId);
+    const crewPrime = crewEntries.reduce((s,e)=>s+e.primeTotal,0);
+    const crewPay = crewEntries.reduce((s,e)=>s+e.grossPay,0);
+    const crewKeep = crewEntries.reduce((s,e)=>s+e.keepTotal,0);
+    const margin = crewPrime > 0 ? (crewKeep/crewPrime*100).toFixed(1) : '0.0';
+
+    html += `<div style="padding:0.5rem 1.2rem 0.2rem;background:var(--surface2);border-bottom:1px solid var(--border);">
+      <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.85rem;">👷 ${crew.name}</span>
+      <span style="margin-left:1rem;font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--prime)">Prime: $${crewPrime.toFixed(2)}</span>
+      <span style="margin-left:0.8rem;font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--pay)">Pay: $${crewPay.toFixed(2)}</span>
+      <span style="margin-left:0.8rem;font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--keep)">Keep: $${crewKeep.toFixed(2)} (${margin}%)</span>
+    </div>
+    <table style="margin-bottom:0.5rem;"><thead><tr>
+      <th>Date</th><th>Site</th><th>Address</th><th>Inv #</th><th>Service Code</th>
+      <th style="text-align:right">Qty</th><th style="text-align:right">Prime Rate</th>
+      <th style="text-align:right">Prime Total</th><th style="text-align:right">Crew Pay</th>
+      <th style="text-align:right">Keep</th><th style="text-align:right">Daily Keep</th>
+    </tr></thead><tbody>`;
+
+    let grandPrime=0, grandPay=0, grandKeep=0;
+    dates.forEach(date => {
+      const dayEntries = crewEntries.filter(e=>e.date===date);
+      if (!dayEntries.length) return;
+      const dayKeep = dayEntries.reduce((s,e)=>s+e.keepTotal,0);
+      const dateStr = new Date(date+'T12:00:00').toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'});
+
+      dayEntries.forEach((e,i) => {
+        const isLast = i===dayEntries.length-1;
+        const site = sites.find(s=>s.id===e.siteId);
+        const sc = e.siteName.toLowerCase().includes('wheel') ? 'site-wheeling' : e.siteName.toLowerCase().includes('charles') ? 'site-charleston' : (site&&site.state==='VA') ? 'site-virginia' : 'site-beckley';
+        html += `<tr>
+          <td class="mono" style="font-size:0.78rem">${dateStr}</td>
+          <td><span class="site-badge ${sc}">${e.siteName}</span></td>
+          <td style="font-size:0.8rem">${e.address}</td>
+          <td class="mono" style="color:var(--muted)">${e.invoiceNo}</td>
+          <td><span class="tag">${e.unit}</span></td>
+          <td class="mono" style="text-align:right">${e.qty}</td>
+          <td class="val-prime" style="text-align:right">$${e.primeRate.toFixed(2)}</td>
+          <td class="val-prime" style="text-align:right">$${e.primeTotal.toFixed(2)}</td>
+          <td class="val-pay" style="text-align:right">$${e.grossPay.toFixed(2)}</td>
+          <td class="val-keep" style="text-align:right">$${e.keepTotal.toFixed(2)}</td>
+          <td class="val-keep" style="text-align:right;font-weight:700">${isLast?'$'+dayKeep.toFixed(2):''}</td>
+        </tr>`;
+      });
+      html += `<tr style="height:4px;background:rgba(0,0,0,0.3)"><td colspan="11"></td></tr>`;
+      grandPrime+=dayEntries.reduce((s,e)=>s+e.primeTotal,0);
+      grandPay+=dayEntries.reduce((s,e)=>s+e.grossPay,0);
+      grandKeep+=dayEntries.reduce((s,e)=>s+e.keepTotal,0);
+    });
+
+    const mg = grandPrime>0?(grandKeep/grandPrime*100).toFixed(1):'0.0';
+    html += `<tr style="background:var(--surface2);border-top:2px solid var(--keep)">
+      <td colspan="5" style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.75rem;color:var(--muted)">SUBTOTAL — ${crew.name}</td>
+      <td colspan="2"></td>
+      <td class="val-prime" style="text-align:right;font-weight:700">$${grandPrime.toFixed(2)}</td>
+      <td class="val-pay" style="text-align:right;font-weight:700">$${grandPay.toFixed(2)}</td>
+      <td class="val-keep" style="text-align:right;font-weight:700">$${grandKeep.toFixed(2)}</td>
+      <td class="val-keep" style="text-align:right;font-size:0.75rem;opacity:0.7">${mg}%</td>
+    </tr></tbody></table>`;
+  });
+
+  // Grand total across all crews
+  const gPrime = allEntries.reduce((s,e)=>s+e.primeTotal,0);
+  const gPay = allEntries.reduce((s,e)=>s+e.grossPay,0);
+  const gKeep = allEntries.reduce((s,e)=>s+e.keepTotal,0);
+  const gMg = gPrime>0?(gKeep/gPrime*100).toFixed(1):'0.0';
+  html += `<div style="background:var(--surface2);border-top:2px solid var(--accent);padding:0.8rem 1.2rem;display:flex;gap:2rem;align-items:center;">
+    <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:0.85rem;letter-spacing:0.1em;color:var(--muted)">WEEK GRAND TOTAL</span>
+    <span style="font-family:'Share Tech Mono',monospace;color:var(--prime)">Prime: $${gPrime.toFixed(2)}</span>
+    <span style="font-family:'Share Tech Mono',monospace;color:var(--pay)">Pay Out: $${gPay.toFixed(2)}</span>
+    <span style="font-family:'Share Tech Mono',monospace;color:var(--keep);font-weight:700">Keep: $${gKeep.toFixed(2)} (${gMg}%)</span>
+  </div>`;
+
+  container.innerHTML = html;
+}
+
+// ============================================================
+// PAY VIEW TOGGLE
+// ============================================================
+function showPayView(view) {
+  currentPayView = view;
+  ['crew','mine','invoices'].forEach(v => {
+    const el = document.getElementById(`payview-${v}`);
+    if (el) el.style.display = v===view ? 'block' : 'none';
+  });
+  document.querySelectorAll('.pay-tab').forEach((t,i) => {
+    t.classList.toggle('active',
+      (i===0&&view==='crew')||(i===1&&view==='mine')||(i===2&&view==='invoices'));
+  });
+  if (view==='invoices') buildSiteInvoiceCards();
+}
+
+// ============================================================
+// PDF EXPORTS
+// ============================================================
+
+const PDF_STYLES = `
+  body{font-family:Arial,sans-serif;font-size:9px;color:#111;margin:0.5in;}
+  .header{margin-bottom:12px;}
+  .header h1{font-size:14px;font-weight:bold;margin:0 0 2px;}
+  .header h2{font-size:10px;color:#444;margin:0 0 4px;font-weight:normal;}
+  .summary-box{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;border:1px solid #ddd;border-radius:4px;padding:10px;background:#f9f9f9;}
+  .sb-item{text-align:center;}
+  .sb-label{font-size:7px;text-transform:uppercase;letter-spacing:0.08em;color:#777;margin-bottom:2px;}
+  .sb-val{font-size:13px;font-weight:bold;font-family:'Courier New',monospace;}
+  .sb-val.pay{color:#cc3300;} .sb-val.net{color:#007733;} .sb-val.ret{color:#7700cc;} .sb-val.prime{color:#1a56cc;}
+  .ret-bar-wrap{height:4px;background:#eee;border-radius:2px;margin-top:3px;}
+  .ret-bar{height:4px;background:#7700cc;border-radius:2px;}
+  .ret-note{font-size:7px;color:#777;margin-top:1px;}
+  .pay-date-box{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:3px;padding:6px 10px;margin-bottom:12px;font-size:9px;}
+  .pay-date-box strong{color:#2e7d32;}
+  .pay-date-va{background:#f3e5f5;border-color:#ce93d8;}
+  .pay-date-va strong{color:#7b1fa2;}
+  table{width:100%;border-collapse:collapse;page-break-inside:auto;}
+  tr{page-break-inside:avoid;}
+  th{background:#1a3a5c;color:white;padding:3px 4px;text-align:left;font-size:7.5px;letter-spacing:0.05em;text-transform:uppercase;}
+  td{padding:2.5px 4px;border-bottom:1px solid #e8e8e8;font-size:8.5px;}
+  tr:nth-child(even) td{background:#f9f9f9;}
+  .gap td{background:#ddd!important;padding:2px;height:3px;}
+  .total-row td{background:#1a3a5c!important;color:white;font-weight:bold;}
+  .subtotal-row td{background:#e8f4fd!important;font-weight:bold;}
+  .grand-row td{background:#1a3a5c!important;color:white;font-weight:bold;font-size:9.5px;}
+  .right{text-align:right;} .mono{font-family:'Courier New',monospace;}
+  .tag{background:#dce8ff;border:1px solid #9ab5f0;padding:0 2px;border-radius:1px;font-family:monospace;font-size:7px;color:#1a3a8c;}
+  .pay{color:#cc3300;} .keep{color:#007733;} .ret{color:#7700cc;} .prime{color:#1a56cc;}
+  .site-b{background:#fff3e0;color:#b35c00;border:1px solid #f5a623;padding:0 3px;border-radius:1px;font-size:7.5px;font-weight:bold;}
+  .site-c{background:#e3f0ff;color:#1a56cc;border:1px solid #4d9fff;padding:0 3px;border-radius:1px;font-size:7.5px;font-weight:bold;}
+  .site-w{background:#e0fff4;color:#007733;border:1px solid #3af0a0;padding:0 3px;border-radius:1px;font-size:7.5px;font-weight:bold;}
+  .site-v{background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;padding:0 3px;border-radius:1px;font-size:7.5px;font-weight:bold;}
+  .crew-section{margin-bottom:20px;}
+  .crew-header{background:#2c3e50;color:white;padding:6px 8px;font-size:11px;font-weight:bold;border-radius:3px 3px 0 0;}
+  @media print{body{margin:0.4in;}}
+`;
+
+function pSiteClass(siteName, siteState) {
+  if (siteState === 'VA') return 'site-v';
+  if (siteName.toLowerCase().includes('wheel')) return 'site-w';
+  if (siteName.toLowerCase().includes('charles')) return 'site-c';
+  return 'site-b';
+}
+
+// Print one crew's pay detail PDF
+function printCrewPayDetail(crewId) {
+  const dates = getWeekDates(currentWeekOffset);
+  const weekEnd = new Date(dates[6]+'T12:00:00');
+  const crew = crews.find(c=>c.id===crewId);
+  if (!crew) return;
+
+  const allWeekEntries = dates.flatMap(d => getEntries(d));
+  const crewEntries = allWeekEntries.filter(e=>e.crewId===crewId);
+  if (!crewEntries.length) { showNotif('No entries for this crew this week'); return; }
+
+  const grossPay = crewEntries.reduce((s,e)=>s+e.grossPay,0);
+  const retAmt = crewEntries.reduce((s,e)=>s+e.retainerAmt,0);
+  const netPay = crewEntries.reduce((s,e)=>s+e.netPay,0);
+  const newRetTotal = crew.retainerCollected + retAmt;
+  const retPct = Math.min(100, newRetTotal/RETAINER_THRESHOLD*100);
+  const retRemaining = Math.max(0, RETAINER_THRESHOLD - newRetTotal);
+
+  const wvEntries = crewEntries.filter(e=>{const s=sites.find(x=>x.id===e.siteId);return s&&s.state!=='VA';});
+  const vaEntries = crewEntries.filter(e=>{const s=sites.find(x=>x.id===e.siteId);return s&&s.state==='VA';});
+  const wvPayDate = wvEntries.length ? calcPayDate(dates,'WV') : null;
+  const vaPayDate = vaEntries.length ? calcPayDate(dates,'VA') : null;
+  const wvNet = wvEntries.reduce((s,e)=>s+e.netPay,0);
+  const vaNet = vaEntries.reduce((s,e)=>s+e.netPay,0);
+  const fmtDate = d=>d?d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'—';
+  const weekEndStr = weekEnd.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  // Summary box
+  const summaryHTML = `<div class="summary-box">
+    <div class="sb-item"><div class="sb-label">Gross Pay</div><div class="sb-val pay">$${grossPay.toFixed(2)}</div></div>
+    <div class="sb-item"><div class="sb-label">Retainer (10%)</div><div class="sb-val ret">$${retAmt.toFixed(2)}</div></div>
+    <div class="sb-item"><div class="sb-label">Net Pay</div><div class="sb-val net">$${netPay.toFixed(2)}</div></div>
+    <div class="sb-item">
+      <div class="sb-label">Retainer Collected</div>
+      <div class="sb-val ret">$${newRetTotal.toFixed(2)}</div>
+      <div class="ret-bar-wrap"><div class="ret-bar" style="width:${retPct}%"></div></div>
+      <div class="ret-note">${retRemaining>0?'$'+retRemaining.toFixed(2)+' until threshold':'✓ Threshold met — no more retainer'}</div>
+    </div>
+    <div class="sb-item"><div class="sb-label">Line Items</div><div class="sb-val prime">${crewEntries.length}</div></div>
+  </div>`;
+
+  // Pay date boxes
+  let payDateHTML = '';
+  if (wvPayDate) {
+    payDateHTML += `<div class="pay-date-box"><strong>WV Pay Date (Net 30):</strong> ${fmtDate(wvPayDate)} — Net Pay: $${wvNet.toFixed(2)}<br>
+      <span style="font-size:8px;color:#555;">Invoice date: ${weekEnd.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · +30 days · next Friday</span></div>`;
+  }
+  if (vaPayDate) {
+    const wed = new Date(dates[2]+'T12:00:00');
+    payDateHTML += `<div class="pay-date-box pay-date-va"><strong>VA Pay Date (Net 14):</strong> ${fmtDate(vaPayDate)} — Net Pay: $${vaNet.toFixed(2)}<br>
+      <span style="font-size:8px;color:#555;">Invoice date (Wed): ${wed.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · +14 days to us · following Friday to crew</span></div>`;
+  }
+
+  // Detail table
+  let tableHTML = `<table><thead><tr>
+    <th>Date</th><th>Site</th><th>Address</th><th>Invoice #</th><th>Service Code</th><th>Description</th>
+    <th class="right">Qty</th><th class="right">UOM</th><th class="right">Rate</th>
+    <th class="right">Amount</th><th class="right">Retainer</th><th class="right">Net Pay</th><th class="right">Pay Date</th><th class="right">Daily Total</th>
+  </tr></thead><tbody>`;
+
+  let grandGross=0, grandRet=0, grandNet=0;
+  dates.forEach(date=>{
+    const dayEntries=crewEntries.filter(e=>e.date===date);
+    if(!dayEntries.length) return;
+    const dayNet=dayEntries.reduce((s,e)=>s+e.netPay,0);
+    const dateStr=new Date(date+'T12:00:00').toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'});
+    dayEntries.forEach((e,i)=>{
+      const isLast=i===dayEntries.length-1;
+      const site=sites.find(s=>s.id===e.siteId);
+      const pd=site&&site.state==='VA'?vaPayDate:wvPayDate;
+      const pdStr=pd?pd.toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'}):'—';
+      const sc=pSiteClass(e.siteName, site?site.state:'WV');
+      tableHTML+=`<tr>
+        <td class="mono">${dateStr}</td>
+        <td><span class="${sc}">${e.siteName}</span></td>
+        <td>${e.address}</td><td class="mono">${e.invoiceNo}</td>
+        <td><span class="tag">${e.unit}</span></td>
+        <td style="font-size:7.5px">${e.desc}</td>
+        <td class="mono right">${e.qty}</td>
+        <td class="mono right" style="font-size:7.5px">${e.uom}</td>
+        <td class="mono right">$${e.payRate.toFixed(2)}</td>
+        <td class="mono right">$${e.grossPay.toFixed(2)}</td>
+        <td class="ret right mono">$${e.retainerAmt.toFixed(2)}</td>
+        <td class="pay right mono" style="font-weight:bold">$${e.netPay.toFixed(2)}</td>
+        <td class="mono right" style="font-size:7.5px">${pdStr}</td>
+        <td class="keep right mono" style="font-weight:bold">${isLast?'$'+dayNet.toFixed(2):''}</td>
+      </tr>`;
+      grandGross+=e.grossPay; grandRet+=e.retainerAmt; grandNet+=e.netPay;
+    });
+    tableHTML+=`<tr class="gap"><td colspan="14"></td></tr>`;
+  });
+  tableHTML+=`<tr class="total-row"><td colspan="7">WEEK ENDING ${weekEndStr} — ${crew.name}</td>
+    <td colspan="2" class="right">Total:</td>
+    <td class="right mono">$${grandGross.toFixed(2)}</td>
+    <td class="right mono">$${grandRet.toFixed(2)}</td>
+    <td colspan="3" class="right mono">$${grandNet.toFixed(2)}</td>
+  </tr>
+  <tr class="subtotal-row"><td colspan="9" class="right" style="font-style:italic;color:#555">Retainer Balance After This Week — ${crew.name}:</td>
+    <td colspan="5" class="right mono ret" style="font-weight:bold">$${newRetTotal.toFixed(2)} / $${RETAINER_THRESHOLD.toLocaleString()} ${retRemaining<=0?'(THRESHOLD MET)':''}</td>
+  </tr></tbody></table>`;
+
+  const title = `${crew.name} — Pay Detail — Week Ending ${weekEndStr}`;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>${PDF_STYLES}</style></head><body>
+  <div class="header"><h1>FTR Production — ${crew.name}</h1><h2>Pay Detail · Week Ending ${weekEndStr} · Generated ${new Date().toLocaleDateString()}</h2></div>
+  ${summaryHTML}${payDateHTML}${tableHTML}</body></html>`;
+
+  printHTML(html);
+  showNotif(`Opening PDF for ${crew.name}...`);
+}
+
+// Print my productivity PDF — all crews, one doc, crew-by-crew sections
+
+// ============================================================
+// SITE INVOICES
+// ============================================================
+function buildSiteInvoiceCards() {
+  const dates = getWeekDates(currentWeekOffset);
+  const weekEnd = new Date(dates[6]+'T12:00:00');
+  const weekStart = new Date(dates[0]+'T12:00:00');
+  const fmtFull = d => d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const allEntries = dates.flatMap(d => getEntries(d));
+
+  // Only WV sites
+  const wvSites = sites.filter(s => s.state === 'WV');
+  const container = document.getElementById('siteInvoiceCards');
+  container.innerHTML = '';
+
+  if (!wvSites.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📄</div>No WV sites configured.</div>';
+    return;
+  }
+
+  wvSites.forEach(site => {
+    // Match by siteId OR siteName as fallback (handles old saved data)
+    const siteEntries = allEntries.filter(e => e.siteId === site.id || e.siteName === site.name);
+    const total = siteEntries.reduce((s,e) => s+e.primeTotal, 0);
+    const jobCount = [...new Set(siteEntries.map(e => e.invoiceNo))].length;
+
+    const card = document.createElement('div');
+    card.className = 'panel';
+    card.style.marginBottom = '1rem';
+    card.innerHTML = `
+      <div class="panel-header">
+        <span class="panel-title">📋 ${site.name} — Week of ${fmtFull(weekStart)}</span>
+        <button class="btn btn-green btn-sm" onclick="printSiteInvoice('${site.id}')"
+          ${!siteEntries.length ? 'disabled' : ''}>⬇ Export Invoice PDF</button>
+      </div>
+      <div class="panel-body" style="padding:0.75rem 1rem;">
+        ${siteEntries.length
+          ? `<span style="color:var(--muted);font-size:0.82rem;">${siteEntries.length} line items · ${jobCount} job${jobCount!==1?'s':''} · Prime Total: <span style="color:var(--accent);font-weight:bold;">$${total.toFixed(2)}</span></span>`
+          : `<span style="color:var(--muted);font-size:0.82rem;">No entries this week for ${site.name}</span>`
+        }
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function printSiteInvoice(siteId) {
+  const site = sites.find(s => s.id === siteId);
+  if (!site) return;
+
+  const dates = getWeekDates(currentWeekOffset);
+  const weekEnd = new Date(dates[6]+'T12:00:00');
+  const weekStart = new Date(dates[0]+'T12:00:00');
+  const fmtDate = d => d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  const allEntries = dates.flatMap(d => getEntries(d));
+  // Match by siteId OR siteName as fallback (handles old saved data)
+  const siteEntries = allEntries.filter(e => e.siteId === siteId || e.siteName === site.name);
+
+  if (!siteEntries.length) { showNotif('No entries for ' + site.name + ' this week'); return; }
+
+  // Group by unit code — sum qty and total
+  const unitGroups = {};
+  siteEntries.forEach(e => {
+    const key = e.unit;
+    if (!unitGroups[key]) {
+      unitGroups[key] = { unit: e.unit, desc: e.desc, uom: e.uom, primeRate: e.primeRate, qty: 0, total: 0 };
+    }
+    unitGroups[key].qty += parseFloat(e.qty) || 0;
+    unitGroups[key].total += e.primeTotal || 0;
+  });
+
+  const unitRows = Object.values(unitGroups).sort((a,b) => a.unit.localeCompare(b.unit));
+  let grandTotal = 0;
+  let lineNum = 1;
+  let tableRows = '';
+
+  unitRows.forEach(r => {
+    grandTotal += r.total;
+    tableRows += `<tr>
+      <td class="mono">${lineNum++}</td>
+      <td><span class="tag">${r.unit}</span></td>
+      <td style="font-size:7.5px;">${r.desc}</td>
+      <td class="mono right">${r.uom}</td>
+      <td class="mono right">${r.qty % 1 === 0 ? r.qty : r.qty.toFixed(2)}</td>
+      <td class="mono right">$${r.primeRate.toFixed(4)}</td>
+      <td class="mono right prime">$${r.total.toFixed(2)}</td>
+    </tr>`;
+  });
+
+  const docInvNo = `${site.abbr}-${weekEnd.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'}).replace(/\//g,'')}`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Invoice — ${site.name} — ${fmtDate(weekEnd)}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:9px;color:#111;margin:0.6in 0.75in;}
+    .inv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:3px solid #111;padding-bottom:12px;}
+    .company-name{font-size:18px;font-weight:bold;letter-spacing:1px;}
+    .company-sub{font-size:8.5px;color:#555;margin-top:3px;}
+    .inv-meta{text-align:right;}
+    .inv-meta .inv-title{font-size:20px;font-weight:bold;color:#333;letter-spacing:2px;}
+    .inv-meta table{margin-top:6px;font-size:8.5px;}
+    .inv-meta td{padding:1px 4px;}
+    .inv-meta td:first-child{color:#666;}
+    .inv-meta td:last-child{font-weight:bold;text-align:right;}
+    .bill-to{margin-bottom:16px;}
+    .bill-to-label{font-size:7.5px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:3px;}
+    .bill-to-name{font-size:11px;font-weight:bold;}
+    table.items{width:100%;border-collapse:collapse;margin-top:8px;}
+    table.items th{background:#222;color:#fff;padding:5px 6px;font-size:8px;text-align:left;}
+    table.items th.right{text-align:right;}
+    table.items td{padding:3px 6px;border-bottom:1px solid #eee;font-size:8.5px;vertical-align:top;}
+    .mono{font-family:'Courier New',monospace;}
+    .right{text-align:right;}
+    .prime{color:#c07000;font-weight:bold;}
+    .tag{background:#e8f0fe;color:#1a56db;border-radius:3px;padding:1px 4px;font-family:'Courier New',monospace;font-size:7.5px;font-weight:bold;}
+    .grand-total{margin-top:20px;text-align:right;border-top:3px double #111;padding-top:10px;}
+    .grand-total .label{font-size:11px;font-weight:bold;margin-right:16px;}
+    .grand-total .amount{font-size:18px;font-weight:bold;color:#c07000;font-family:'Courier New',monospace;}
+    .footer{margin-top:32px;font-size:7.5px;color:#888;border-top:1px solid #ddd;padding-top:8px;text-align:center;}
+    @media print{body{margin:0.4in 0.5in;}}
+  </style></head><body>
+
+  <div class="inv-header">
+    <div>
+      <div class="company-name">PALMER CONSTRUCTION COMPANY, INC.</div>
+      <div class="company-sub">Full-Service Telecommunications &amp; Electrical Contractor</div>
+      <div class="company-sub">Coeburn, Virginia</div>
+    </div>
+    <div class="inv-meta">
+      <div class="inv-title">INVOICE</div>
+      <table>
+        <tr><td>Invoice Ref:</td><td>${docInvNo}</td></tr>
+        <tr><td>Site:</td><td>${site.name}</td></tr>
+        <tr><td>Week Starting:</td><td>${fmtDate(weekStart)}</td></tr>
+        <tr><td>Week Ending:</td><td>${fmtDate(weekEnd)}</td></tr>
+        <tr><td>Date Issued:</td><td>${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="bill-to">
+    <div class="bill-to-label">Bill To</div>
+    <div class="bill-to-name">${site.client || 'Prime Client'}</div>
+  </div>
+
+  <table class="items">
+    <thead>
+      <tr>
+        <th style="width:24px;">#</th>
+        <th style="width:72px;">Unit Code</th>
+        <th>Description</th>
+        <th class="right" style="width:36px;">UOM</th>
+        <th class="right" style="width:50px;">Total Qty</th>
+        <th class="right" style="width:70px;">Unit Price</th>
+        <th class="right" style="width:76px;">Total</th>
+      </tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+
+  <div class="grand-total">
+    <span class="label">TOTAL DUE</span>
+    <span class="amount">$${grandTotal.toFixed(2)}</span>
+  </div>
+
+  <div class="footer">
+    Palmer Construction Company, Inc. &nbsp;·&nbsp; Generated ${new Date().toLocaleString()} &nbsp;·&nbsp; ${site.name} — Week Ending ${fmtDate(weekEnd)}
+  </div>
+  </body></html>`;
+
+  printHTML(html);
+  showNotif('Opening ' + site.name + ' invoice PDF...');
+}
+
+function printMyProductivity() {
+  const dates = getWeekDates(currentWeekOffset);
+  const weekEnd = new Date(dates[6]+'T12:00:00');
+  const weekEndStr = weekEnd.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const allEntries = dates.flatMap(d=>getEntries(d));
+  if (!allEntries.length) { showNotif('No entries this week'); return; }
+
+  const crewIds = [...new Set(allEntries.map(e=>e.crewId))];
+  let sectionsHTML = '';
+  let grandPrime=0, grandPay=0, grandKeep=0;
+
+  crewIds.forEach(crewId=>{
+    const crew=crews.find(c=>c.id===crewId);
+    if(!crew) return;
+    const crewEntries=allEntries.filter(e=>e.crewId===crewId);
+    const cp=crewEntries.reduce((s,e)=>s+e.primeTotal,0);
+    const cpay=crewEntries.reduce((s,e)=>s+e.grossPay,0);
+    const ck=crewEntries.reduce((s,e)=>s+e.keepTotal,0);
+    const mg=cp>0?(ck/cp*100).toFixed(1):'0.0';
+    grandPrime+=cp; grandPay+=cpay; grandKeep+=ck;
+
+    let tableHTML=`<table><thead><tr>
+      <th>Date</th><th>Site</th><th>Address</th><th>Inv #</th><th>Service Code</th><th>Description</th>
+      <th class="right">Qty</th><th class="right">Prime Rate</th><th class="right">Prime Total</th>
+      <th class="right">Crew Pay</th><th class="right">Keep</th><th class="right">Daily Keep</th>
+    </tr></thead><tbody>`;
+
+    let dPrime=0,dPay=0,dKeep=0;
+    dates.forEach(date=>{
+      const dayEntries=crewEntries.filter(e=>e.date===date);
+      if(!dayEntries.length) return;
+      const dayKeep=dayEntries.reduce((s,e)=>s+e.keepTotal,0);
+      const dateStr=new Date(date+'T12:00:00').toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'});
+      dayEntries.forEach((e,i)=>{
+        const isLast=i===dayEntries.length-1;
+        const site=sites.find(s=>s.id===e.siteId);
+        const sc=pSiteClass(e.siteName,site?site.state:'WV');
+        tableHTML+=`<tr>
+          <td class="mono">${dateStr}</td>
+          <td><span class="${sc}">${e.siteName}</span></td>
+          <td>${e.address}</td><td class="mono">${e.invoiceNo}</td>
+          <td><span class="tag">${e.unit}</span></td>
+          <td style="font-size:7.5px">${e.desc}</td>
+          <td class="mono right">${e.qty}</td>
+          <td class="prime right mono">$${e.primeRate.toFixed(2)}</td>
+          <td class="prime right mono">$${e.primeTotal.toFixed(2)}</td>
+          <td class="pay right mono">$${e.grossPay.toFixed(2)}</td>
+          <td class="keep right mono">$${e.keepTotal.toFixed(2)}</td>
+          <td class="keep right mono" style="font-weight:bold">${isLast?'$'+dayKeep.toFixed(2):''}</td>
+        </tr>`;
+        dPrime+=e.primeTotal; dPay+=e.grossPay; dKeep+=e.keepTotal;
+      });
+      tableHTML+=`<tr class="gap"><td colspan="12"></td></tr>`;
+    });
+    tableHTML+=`<tr class="subtotal-row">
+      <td colspan="6">SUBTOTAL — ${crew.name} (${mg}% margin)</td>
+      <td colspan="2"></td>
+      <td class="right mono prime">$${dPrime.toFixed(2)}</td>
+      <td class="right mono pay">$${dPay.toFixed(2)}</td>
+      <td colspan="2" class="right mono keep">$${dKeep.toFixed(2)}</td>
+    </tr></tbody></table>`;
+
+    sectionsHTML+=`<div class="crew-section">
+      <div class="crew-header">👷 ${crew.name} &nbsp;·&nbsp; Prime: $${cp.toFixed(2)} &nbsp;·&nbsp; Pay Out: $${cpay.toFixed(2)} &nbsp;·&nbsp; Keep: $${ck.toFixed(2)} (${mg}%)</div>
+      ${tableHTML}
+    </div>`;
+  });
+
+  const gMg = grandPrime>0?(grandKeep/grandPrime*100).toFixed(1):'0.0';
+  const grandHTML=`<table><thead><tr>
+    <th>Metric</th><th class="right">Amount</th><th class="right">%</th>
+  </tr></thead><tbody>
+    <tr><td>Total Prime Billed</td><td class="right mono prime">$${grandPrime.toFixed(2)}</td><td class="right">100%</td></tr>
+    <tr><td>Total Crew Pay Out</td><td class="right mono pay">$${grandPay.toFixed(2)}</td><td class="right">${grandPrime>0?((grandPay/grandPrime)*100).toFixed(1):0}%</td></tr>
+    <tr class="grand-row"><td>Total Keep</td><td class="right mono">$${grandKeep.toFixed(2)}</td><td class="right">${gMg}%</td></tr>
+  </tbody></table>`;
+
+  const title=`My Productivity — All Crews — Week Ending ${weekEndStr}`;
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>${PDF_STYLES}</style></head><body>
+  <div class="header"><h1>FTR Production — My Productivity</h1><h2>All Crews · Week Ending ${weekEndStr} · Generated ${new Date().toLocaleDateString()}</h2></div>
+  <div style="margin-bottom:16px;">${grandHTML}</div>
+  <hr style="border:none;border-top:1px solid #ddd;margin-bottom:16px;">
+  ${sectionsHTML}</body></html>`;
+
+  printHTML(html);
+  showNotif('Opening My Productivity PDF...');
+}
+
+function printHTML(html) {
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) { alert('Pop-up blocked! Please allow pop-ups for this page and try again.'); return; }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.onload = () => { w.focus(); w.print(); };
+  // Fallback if onload already fired
+  setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 800);
+}
+
+function siteClass(siteName) {
+  if (siteName.toLowerCase().includes('wheel')) return 'site-wheeling';
+  if (siteName.toLowerCase().includes('charles')) return 'site-charleston';
+  return 'site-beckley';
+}
+
+// ============================================================
+// EXPORT / IMPORT
+// ============================================================
+function exportData() {
+  const data = { db, sites, crews, exportedAt: new Date().toISOString(), version: 4 };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ftr-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showNotif('Data exported!');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!confirm(`Import data from ${data.exportedAt ? new Date(data.exportedAt).toLocaleString() : 'unknown date'}? This will replace your current data.`)) return;
+      if (data.db) db = data.db;
+      if (data.sites && data.sites.length) sites = data.sites;
+      if (data.crews && data.crews.length) crews = data.crews;
+      saveState();
+      populateSiteSelects();
+      populateCrewSelects();
+      renderContractorGrid();
+      renderSiteGrid();
+      renderEntries();
+      showNotif('Data imported successfully!');
+    } catch(err) {
+      alert('Import failed — invalid file. ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ============================================================
+// TABS & NOTIFICATIONS
+// ============================================================
+function switchTab(name) {
+  const names=['entry','history','weekly','contractors','sites'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name==='history') renderHistory();
+  if (name==='weekly') renderWeekly();
+  if (name==='contractors') renderContractorGrid();
+  if (name==='sites') renderSiteGrid();
+}
+
+let notifTimer;
+function showNotif(msg) {
+  const el=document.getElementById('notif');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(notifTimer);
+  notifTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
