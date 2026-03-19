@@ -184,6 +184,7 @@
   <div class="tab active" onclick="switchTab('entry')">Daily Entry</div>
   <div class="tab" onclick="switchTab('history')">History</div>
   <div class="tab" onclick="switchTab('weekly')">Weekly Pay Detail</div>
+  <div class="tab" onclick="switchTab('exports')">Exports</div>
   <div class="tab" onclick="switchTab('contractors')">Contractors</div>
   <div class="tab" onclick="switchTab('sites')">Sites</div>
 </div>
@@ -363,6 +364,20 @@
 
   </div>
 
+  <!-- ===================== EXPORTS ===================== -->
+  <div class="section" id="tab-exports">
+
+    <div class="week-nav" style="margin-bottom:1rem;">
+      <button class="btn btn-ghost btn-sm" onclick="changeExportWeek(-1)">◀ Prev</button>
+      <span class="week-range" id="exportWeekRange"></span>
+      <button class="btn btn-ghost btn-sm" onclick="changeExportWeek(1)">Next ▶</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportWeekOffset=0;renderExports()">This Week</button>
+    </div>
+
+    <div id="exportSiteCards"></div>
+
+  </div>
+
   <!-- ===================== CONTRACTORS ===================== -->
   <div class="section" id="tab-contractors">
     <div class="panel">
@@ -402,6 +417,8 @@
               <option value="virginia">Virginia (coming soon)</option>
             </select>
           </div>
+          <div class="fg"><label>Project Manager</label><input type="text" id="newSitePM" placeholder="PM name" style="width:160px;"></div>
+          <div class="fg"><label>PO Number</label><input type="text" id="newSitePO" placeholder="PO #" style="width:120px;"></div>
           <button class="btn btn-primary" onclick="addSite()">+ Add Site</button>
         </div>
       </div>
@@ -726,6 +743,7 @@ const PRICE_LISTS = {
     {unit:'FL50G',desc:'SPLICER / HELPER',uom:'HR',prime:25.0,pay:12.5,keep:12.5},
   ],
   virginia: [
+    {unit:'TRIP',desc:'Trip Charge',uom:'EA',prime:50.0,pay:0.0,keep:50.0},
     {unit:'C6M',desc:'Install 1/4" strand, incl. hardware',uom:'EA',prime:0.61,pay:0.46,keep:0.15},
     {unit:'PM2-A',desc:'Install copper bond from strand to VGR',uom:'EA',prime:4.09,pay:3.07,keep:1.02},
     {unit:'PE1-3',desc:'Install 1/4" down guy for strand',uom:'EA',prime:12.53,pay:9.4,keep:3.13},
@@ -780,6 +798,7 @@ const PRICE_LISTS = {
     {unit:'UG ROW',desc:'UG ROW clearing',uom:'EA',prime:1.8,pay:1.35,keep:0.45},
   ],
   allpoints: [
+    {unit:'TRIP',desc:'Trip Charge',uom:'EA',prime:50.0,pay:0.0,keep:50.0},
     {unit:'C6M',desc:'Install 1/4" strand, incl. hardware',uom:'FT',prime:0.61,pay:0.46,keep:0.15},
     {unit:'PM2-A',desc:'Install copper bond from strand to VGR',uom:'EA',prime:4.0,pay:3.07,keep:0.93},
     {unit:'ZD-00001',desc:'Aerial Service Drop Placement <= 500\'',uom:'FT',prime:0.77,pay:0.58,keep:0.19},
@@ -844,19 +863,21 @@ function loadState() {
 let db = {}; // { 'YYYY-MM-DD': [entries] }
 
 let sites = [
-  { id: 's1', name: 'Beckley',    abbr: 'BCK', client: '', priceList: 'beckley',  state: 'WV' , lastInvoice: 0},
-  { id: 's2', name: 'Charleston', abbr: 'CHS', client: '', priceList: 'wheeling', state: 'WV' , lastInvoice: 0},
-  { id: 's3', name: 'Wheeling',   abbr: 'WHL', client: '', priceList: 'wheeling', state: 'WV' , lastInvoice: 0},
-  { id: 's4', name: 'REC',        abbr: 'REC', client: '', priceList: 'virginia', state: 'VA' , lastInvoice: 0},
-  { id: 's5', name: 'CVEC',       abbr: 'CVE', client: '', priceList: 'virginia',  state: 'VA' , lastInvoice: 0},
-  { id: 's6', name: 'All Points',  abbr: 'ALP', client: '', priceList: 'allpoints', state: 'VA' , lastInvoice: 0},
+  { id: 's1', name: 'Beckley',    abbr: 'BCK', client: 'Gudenkauf LLC', priceList: 'beckley',   state: 'WV', lastInvoice: 0, pm: 'Will Caudill', po: '' },
+  { id: 's2', name: 'Charleston', abbr: 'CHS', client: 'Gudenkauf LLC', priceList: 'wheeling',  state: 'WV', lastInvoice: 0, pm: 'Will Caudill', po: '' },
+  { id: 's3', name: 'Wheeling',   abbr: 'WHL', client: 'Gudenkauf LLC', priceList: 'wheeling',  state: 'WV', lastInvoice: 0, pm: 'Will Caudill', po: '' },
+  { id: 's4', name: 'REC',        abbr: 'REC', client: '',              priceList: 'virginia',  state: 'VA', lastInvoice: 0, pm: '', po: '' },
+  { id: 's5', name: 'CVEC',       abbr: 'CVE', client: '',              priceList: 'virginia',  state: 'VA', lastInvoice: 0, pm: '', po: '' },
+  { id: 's6', name: 'All Points', abbr: 'ALP', client: '',              priceList: 'allpoints', state: 'VA', lastInvoice: 0, pm: '', po: '' },
 ];
 
 let crews = [
   { id: 'c1', name: 'FoxComm', retainerCollected: 2279.32 },
+  { id: 'c2', name: 'Palmer Construction', retainerCollected: 0, isPalmer: true },
 ];
 
 let currentWeekOffset = 0;
+let exportWeekOffset = 0;
 let currentPayView = 'contractor';
 
 // ============================================================
@@ -939,6 +960,11 @@ function setToday() {
 // ============================================================
 // SITES & CREWS MANAGEMENT
 // ============================================================
+function updateSiteField(siteId, field, value) {
+  const site = sites.find(s => s.id === siteId);
+  if (site) { site[field] = value; saveState(); showNotif('Saved'); }
+}
+
 function addSite() {
   const name = document.getElementById('newSiteName').value.trim();
   const client = document.getElementById('newSiteClient').value.trim();
@@ -946,7 +972,9 @@ function addSite() {
   const state = document.getElementById('newSiteState').value;
   if (!name) { showNotif('Enter a site name'); return; }
   const abbr = document.getElementById('newSiteAbbr').value.trim().toUpperCase() || name.substring(0,3).toUpperCase();
-  sites.push({ id: 's'+Date.now(), name, abbr, client, priceList: pl, state });
+  const pm = document.getElementById('newSitePM') ? document.getElementById('newSitePM').value.trim() : '';
+  const po = document.getElementById('newSitePO') ? document.getElementById('newSitePO').value.trim() : '';
+  sites.push({ id: 's'+Date.now(), name, abbr, client, priceList: pl, state, lastInvoice: 0, pm, po });
   document.getElementById('newSiteName').value = '';
   document.getElementById('newSiteClient').value = '';
   populateSiteSelects();
@@ -1071,6 +1099,10 @@ function renderSiteGrid() {
             <span style="margin-left:0.5rem;font-size:0.72rem;font-family:'Share Tech Mono',monospace;color:${stateColor}">${s.state} · Net ${s.state==='VA'?14:30}</span>
           </div>
           <div class="site-card-client">${s.client || 'Prime client TBD'} <span style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--accent)">· ${s.abbr||'???'}</span></div>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:2px;">
+            PM: <input type="text" value="${s.pm||''}" placeholder="Project Manager" onchange="updateSiteField('${s.id}','pm',this.value)" style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:0.75rem;width:140px;padding:1px 2px;">
+            &nbsp;PO: <input type="text" value="${s.po||''}" placeholder="PO #" onchange="updateSiteField('${s.id}','po',this.value)" style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:0.75rem;width:90px;padding:1px 2px;">
+          </div>
         </div>
         <button class="btn btn-danger btn-sm" onclick="deleteSite('${s.id}')">✕</button>
       </div>
@@ -1200,10 +1232,13 @@ function addEntry() {
   const row = pl.find(r => r.unit === code);
   if (!row) { showNotif('Unit code not found in this site price list'); return; }
 
-  const grossPay = parseFloat((row.pay * qty).toFixed(2));
-  const remaining = Math.max(0, RETAINER_THRESHOLD - crew.retainerCollected);
-  const retainerAmt = remaining > 0 ? parseFloat((grossPay * RETAINER_RATE).toFixed(2)) : 0;
-  const netPay = parseFloat((grossPay - retainerAmt).toFixed(2));
+  const isPalmer = crew.isPalmer === true;
+  const primeTotal = parseFloat((row.prime * qty).toFixed(2));
+  const grossPay   = isPalmer ? 0 : parseFloat((row.pay * qty).toFixed(2));
+  const remaining  = isPalmer ? 0 : Math.max(0, RETAINER_THRESHOLD - crew.retainerCollected);
+  const retainerAmt = (!isPalmer && remaining > 0) ? parseFloat((grossPay * RETAINER_RATE).toFixed(2)) : 0;
+  const netPay     = isPalmer ? 0 : parseFloat((grossPay - retainerAmt).toFixed(2));
+  const keepTotal  = isPalmer ? primeTotal : parseFloat((row.keep * qty).toFixed(2));
 
   const entry = {
     id: Date.now(), date,
@@ -1212,10 +1247,11 @@ function addEntry() {
     address: address || '—',
     invoiceNo: invoiceNo || '—',
     unit: row.unit, desc: row.desc, uom: row.uom, qty,
-    primeRate: row.prime, payRate: row.pay, keepRate: row.keep,
-    primeTotal: parseFloat((row.prime*qty).toFixed(2)),
+    primeRate: row.prime, payRate: isPalmer ? 0 : row.pay, keepRate: isPalmer ? row.prime : row.keep,
+    primeTotal,
     grossPay, retainerAmt, netPay,
-    keepTotal: parseFloat((row.keep*qty).toFixed(2)),
+    keepTotal,
+    isPalmer,
   };
 
   const entries = getEntries(date);
@@ -1857,6 +1893,216 @@ function printCrewPayDetail(crewId) {
 
 // Print my productivity PDF — all crews, one doc, crew-by-crew sections
 
+
+// ============================================================
+// EXPORTS TAB
+// ============================================================
+function changeExportWeek(dir) {
+  exportWeekOffset += dir;
+  renderExports();
+}
+
+function renderExports() {
+  const dates = getWeekDates(exportWeekOffset);
+  const weekEnd = new Date(dates[6]+'T12:00:00');
+  const weekStart = new Date(dates[0]+'T12:00:00');
+  const fmt = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const fmtFull = d => d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  document.getElementById('exportWeekRange').textContent =
+    `${fmt(weekStart)} – ${fmt(weekEnd)}, ${weekStart.getFullYear()}`;
+
+  // Use ALL entries in db for this week — match on date string directly
+  const allEntries = Object.keys(db)
+    .filter(d => d >= dates[0] && d <= dates[6])
+    .flatMap(d => db[d] || []);
+  const container = document.getElementById('exportSiteCards');
+  container.innerHTML = '';
+
+  // Group all sites — WV get invoice+lien waiver, VA get invoice only
+  const orderedStates = ['WV','VA'];
+  orderedStates.forEach(state => {
+    const stateSites = sites.filter(s => (s.state||'WV') === state);
+    if (!stateSites.length) return;
+
+    const stateHeader = document.createElement('div');
+    stateHeader.style.cssText = 'font-size:0.7rem;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:1rem 0 0.5rem;';
+    stateHeader.textContent = state === 'WV' ? 'WV — Invoice + Lien Waiver' : 'VA — Invoice Only';
+    container.appendChild(stateHeader);
+
+    stateSites.forEach(site => {
+      const siteEntries = allEntries.filter(e =>
+        e.siteId === site.id || e.siteName === site.name);
+      const total = siteEntries.reduce((s,e) => s+e.primeTotal, 0);
+      const unitCount = [...new Set(siteEntries.map(e => e.unit))].length;
+      const jobCount = [...new Set(siteEntries.map(e => e.invoiceNo))].length;
+
+      const card = document.createElement('div');
+      card.className = 'panel';
+      card.style.marginBottom = '0.75rem';
+      card.innerHTML = `
+        <div class="panel-header">
+          <span class="panel-title">${site.name}
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--accent);margin-left:0.5rem;">${site.abbr||''}</span>
+          </span>
+          <button class="btn btn-green btn-sm"
+            onclick="exportSiteWeek('${site.id}', ${exportWeekOffset})"
+            ${!siteEntries.length ? 'disabled title="No entries this week"' : ''}>
+            ⬇ Export ${state==='WV' ? 'Invoice + Lien Waiver' : 'Invoice'}
+          </button>
+        </div>
+        <div class="panel-body" style="padding:0.6rem 1rem;">
+          ${siteEntries.length
+            ? `<span style="color:var(--muted);font-size:0.82rem;">
+                ${siteEntries.length} line item${siteEntries.length!==1?'s':''} &nbsp;·&nbsp;
+                ${jobCount} job${jobCount!==1?'s':''} &nbsp;·&nbsp;
+                ${unitCount} unit code${unitCount!==1?'s':''} &nbsp;·&nbsp;
+                Prime Total: <span style="color:var(--accent);font-weight:bold;">$${total.toFixed(2)}</span>
+              </span>`
+            : `<span style="color:var(--muted);font-size:0.82rem;">No entries this week</span>`
+          }
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  });
+}
+
+function exportSiteWeek(siteId, weekOffset) {
+  const site = sites.find(s => s.id === siteId);
+  if (!site) return;
+
+  const dates = getWeekDates(weekOffset);
+  const weekEnd = new Date(dates[6]+'T12:00:00');
+  const weekStart = new Date(dates[0]+'T12:00:00');
+  const fmtDate = d => d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const fmtShort = d => d.toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'});
+
+  const allEntries = Object.keys(db).filter(d => d >= dates[0] && d <= dates[6]).flatMap(d => db[d] || []);
+  const siteEntries = allEntries.filter(e => e.siteId === siteId || e.siteName === site.name);
+
+  if (!siteEntries.length) { showNotif('No entries for ' + site.name); return; }
+
+  // Group by unit code
+  const unitGroups = {};
+  siteEntries.forEach(e => {
+    if (!unitGroups[e.unit]) {
+      unitGroups[e.unit] = { unit:e.unit, desc:e.desc, uom:e.uom, primeRate:e.primeRate, qty:0, total:0 };
+    }
+    unitGroups[e.unit].qty += parseFloat(e.qty)||0;
+    unitGroups[e.unit].total += e.primeTotal||0;
+  });
+
+  const unitRows = Object.values(unitGroups).sort((a,b) => a.unit.localeCompare(b.unit));
+  let grandTotal = 0;
+  let lineNum = 1;
+  let tableRows = '';
+
+  unitRows.forEach(r => {
+    grandTotal += r.total;
+    tableRows += `<tr>
+      <td class="mono">${lineNum++}</td>
+      <td><span class="tag">${r.unit}</span></td>
+      <td style="font-size:7.5px;">${r.desc}</td>
+      <td class="mono right">${r.uom}</td>
+      <td class="mono right">${r.qty%1===0?r.qty:r.qty.toFixed(2)}</td>
+      <td class="mono right">$${r.primeRate.toFixed(4)}</td>
+      <td class="mono right prime">$${r.total.toFixed(2)}</td>
+    </tr>`;
+  });
+
+  const docInvNo = `${site.abbr}-${weekEnd.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'}).replace(/\//g,'')}`;
+
+  const invoiceHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Invoice — ${site.name} — ${fmtDate(weekEnd)}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:9px;color:#111;margin:0.6in 0.75in;}
+    .inv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:3px solid #111;padding-bottom:12px;}
+    .company-name{font-size:18px;font-weight:bold;letter-spacing:1px;}
+    .company-sub{font-size:8.5px;color:#555;margin-top:3px;}
+    .inv-meta{text-align:right;}
+    .inv-meta .inv-title{font-size:20px;font-weight:bold;color:#333;letter-spacing:2px;}
+    .inv-meta table{margin-top:6px;font-size:8.5px;}
+    .inv-meta td{padding:1px 4px;}
+    .inv-meta td:first-child{color:#666;}
+    .inv-meta td:last-child{font-weight:bold;text-align:right;}
+    .bill-to{margin-bottom:16px;}
+    .bill-to-label{font-size:7.5px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:3px;}
+    .bill-to-name{font-size:11px;font-weight:bold;}
+    table.items{width:100%;border-collapse:collapse;margin-top:8px;}
+    table.items th{background:#222;color:#fff;padding:5px 6px;font-size:8px;text-align:left;}
+    table.items th.right{text-align:right;}
+    table.items td{padding:3px 6px;border-bottom:1px solid #eee;font-size:8.5px;vertical-align:top;}
+    .mono{font-family:'Courier New',monospace;}
+    .right{text-align:right;}
+    .prime{color:#c07000;font-weight:bold;}
+    .tag{background:#e8f0fe;color:#1a56db;border-radius:3px;padding:1px 4px;font-family:'Courier New',monospace;font-size:7.5px;font-weight:bold;}
+    .grand-total{margin-top:20px;text-align:right;border-top:3px double #111;padding-top:10px;}
+    .grand-total .label{font-size:11px;font-weight:bold;margin-right:16px;}
+    .grand-total .amount{font-size:18px;font-weight:bold;color:#c07000;font-family:'Courier New',monospace;}
+    .footer{margin-top:32px;font-size:7.5px;color:#888;border-top:1px solid #ddd;padding-top:8px;text-align:center;}
+    @media print{body{margin:0.4in 0.5in;}}
+  </style></head><body>
+  <div class="inv-header">
+    <div>
+      <div class="company-name">PALMER CONSTRUCTION COMPANY, INC.</div>
+      <div class="company-sub">Full-Service Telecommunications &amp; Electrical Contractor</div>
+      <div class="company-sub">Coeburn, Virginia</div>
+    </div>
+    <div class="inv-meta">
+      <div class="inv-title">INVOICE</div>
+      <table>
+        <tr><td>Invoice Ref:</td><td>${docInvNo}</td></tr>
+        <tr><td>Site:</td><td>${site.name}</td></tr>
+        <tr><td>Week Starting:</td><td>${fmtDate(weekStart)}</td></tr>
+        <tr><td>Week Ending:</td><td>${fmtDate(weekEnd)}</td></tr>
+        <tr><td>Date Issued:</td><td>${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="bill-to">
+    <div class="bill-to-label">Bill To</div>
+    <div class="bill-to-name">Gudenkauf LLC</div>
+    <div style="font-size:8.5px;margin-top:3px;">
+      ${site.pm ? 'Attn: ' + site.pm + '<br>' : ''}
+      1600 Pearl St. Ste 300<br>
+      Boulder, CO 80302
+    </div>
+    ${site.po ? '<div style="font-size:8.5px;margin-top:4px;"><strong>PO Number:</strong> ' + site.po + '</div>' : ''}
+  </div>
+  <table class="items">
+    <thead>
+      <tr>
+        <th style="width:24px;">#</th>
+        <th style="width:72px;">Unit Code</th>
+        <th>Description</th>
+        <th class="right" style="width:36px;">UOM</th>
+        <th class="right" style="width:50px;">Total Qty</th>
+        <th class="right" style="width:70px;">Unit Price</th>
+        <th class="right" style="width:76px;">Total</th>
+      </tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+  <div class="grand-total">
+    <span class="label">TOTAL DUE</span>
+    <span class="amount">$${grandTotal.toFixed(2)}</span>
+  </div>
+  <div class="footer">
+    Palmer Construction Company, Inc. &nbsp;·&nbsp; Generated ${new Date().toLocaleString()} &nbsp;·&nbsp; ${site.name} — Week Ending ${fmtDate(weekEnd)}
+  </div>
+  </body></html>`;
+
+  printHTML(invoiceHTML);
+
+  // WV sites also get lien waiver
+  if ((site.state||'WV') === 'WV') {
+    setTimeout(() => printLienWaiver(site, grandTotal, docInvNo, weekEnd), 800);
+  }
+
+  showNotif('Exporting ' + site.name + '...');
+}
+
 // ============================================================
 // SITE INVOICES
 // ============================================================
@@ -1866,6 +2112,10 @@ function buildSiteInvoiceCards() {
   const weekStart = new Date(dates[0]+'T12:00:00');
   const fmtFull = d => d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   const allEntries = dates.flatMap(d => getEntries(d));
+
+  // Debug — log all entries and site IDs
+  console.log('All entries this week:', allEntries.map(e => ({date:e.date, siteId:e.siteId, siteName:e.siteName, unit:e.unit})));
+  console.log('Sites:', sites.map(s => ({id:s.id, name:s.name, state:s.state})));
 
   // Only WV sites
   const wvSites = sites.filter(s => s.state === 'WV');
@@ -1878,7 +2128,8 @@ function buildSiteInvoiceCards() {
   }
 
   wvSites.forEach(site => {
-    const siteEntries = allEntries.filter(e => e.siteId === site.id);
+    // Match by siteId OR siteName as fallback (handles old saved data)
+    const siteEntries = allEntries.filter(e => e.siteId === site.id || e.siteName === site.name);
     const total = siteEntries.reduce((s,e) => s+e.primeTotal, 0);
     const jobCount = [...new Set(siteEntries.map(e => e.invoiceNo))].length;
 
@@ -1910,63 +2161,42 @@ function printSiteInvoice(siteId) {
   const weekEnd = new Date(dates[6]+'T12:00:00');
   const weekStart = new Date(dates[0]+'T12:00:00');
   const fmtDate = d => d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-  const fmtShort = d => d.toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'});
 
   const allEntries = dates.flatMap(d => getEntries(d));
-  const siteEntries = allEntries.filter(e => e.siteId === siteId);
+  // Match by siteId OR siteName as fallback (handles old saved data)
+  const siteEntries = allEntries.filter(e => e.siteId === siteId || e.siteName === site.name);
 
   if (!siteEntries.length) { showNotif('No entries for ' + site.name + ' this week'); return; }
 
-  // Group by invoice number
-  const invoiceGroups = {};
+  // Group by unit code — sum qty and total
+  const unitGroups = {};
   siteEntries.forEach(e => {
-    const inv = e.invoiceNo || '—';
-    if (!invoiceGroups[inv]) invoiceGroups[inv] = [];
-    invoiceGroups[inv].push(e);
+    const key = e.unit;
+    if (!unitGroups[key]) {
+      unitGroups[key] = { unit: e.unit, desc: e.desc, uom: e.uom, primeRate: e.primeRate, qty: 0, total: 0 };
+    }
+    unitGroups[key].qty += parseFloat(e.qty) || 0;
+    unitGroups[key].total += e.primeTotal || 0;
   });
 
-  // Build invoice rows
-  let tableRows = '';
+  const unitRows = Object.values(unitGroups).sort((a,b) => a.unit.localeCompare(b.unit));
   let grandTotal = 0;
   let lineNum = 1;
+  let tableRows = '';
 
-  Object.keys(invoiceGroups).sort().forEach(invNo => {
-    const entries = invoiceGroups[invNo];
-    const invTotal = entries.reduce((s,e) => s+e.primeTotal, 0);
-    grandTotal += invTotal;
-
-    // Invoice header row
-    const addr = entries[0].address || '';
-    const dateStr = fmtShort(new Date(entries[0].date+'T12:00:00'));
-    tableRows += `
-      <tr class="inv-group-header">
-        <td colspan="6" style="background:#f0f4f8;font-weight:bold;font-size:8.5px;padding:4px 6px;border-top:2px solid #ccc;">
-          Invoice: ${invNo} &nbsp;·&nbsp; ${addr} &nbsp;·&nbsp; ${dateStr}
-        </td>
-      </tr>`;
-
-    entries.forEach(e => {
-      tableRows += `
-        <tr>
-          <td class="mono" style="padding-left:12px;">${lineNum++}</td>
-          <td><span class="tag">${e.unit}</span></td>
-          <td style="font-size:7.5px;">${e.desc}</td>
-          <td class="mono right">${e.uom}</td>
-          <td class="mono right">${e.qty}</td>
-          <td class="mono right prime">$${e.primeRate.toFixed(4)}</td>
-          <td class="mono right prime">$${e.primeTotal.toFixed(2)}</td>
-        </tr>`;
-    });
-
-    tableRows += `
-      <tr class="subtotal-row">
-        <td colspan="6" class="right" style="font-size:8px;">Invoice Subtotal</td>
-        <td class="mono right prime">$${invTotal.toFixed(2)}</td>
-      </tr>
-      <tr class="gap"><td colspan="7" style="height:6px;"></td></tr>`;
+  unitRows.forEach(r => {
+    grandTotal += r.total;
+    tableRows += `<tr>
+      <td class="mono">${lineNum++}</td>
+      <td><span class="tag">${r.unit}</span></td>
+      <td style="font-size:7.5px;">${r.desc}</td>
+      <td class="mono right">${r.uom}</td>
+      <td class="mono right">${r.qty % 1 === 0 ? r.qty : r.qty.toFixed(2)}</td>
+      <td class="mono right">$${r.primeRate.toFixed(4)}</td>
+      <td class="mono right prime">$${r.total.toFixed(2)}</td>
+    </tr>`;
   });
 
-  // Invoice number for the document — use week end date as ref
   const docInvNo = `${site.abbr}-${weekEnd.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'}).replace(/\//g,'')}`;
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -1986,23 +2216,19 @@ function printSiteInvoice(siteId) {
     .bill-to-label{font-size:7.5px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:3px;}
     .bill-to-name{font-size:11px;font-weight:bold;}
     table.items{width:100%;border-collapse:collapse;margin-top:8px;}
-    table.items th{background:#222;color:#fff;padding:4px 6px;font-size:8px;text-align:left;}
+    table.items th{background:#222;color:#fff;padding:5px 6px;font-size:8px;text-align:left;}
     table.items th.right{text-align:right;}
     table.items td{padding:3px 6px;border-bottom:1px solid #eee;font-size:8.5px;vertical-align:top;}
     .mono{font-family:'Courier New',monospace;}
     .right{text-align:right;}
-    .prime{color:#c07000;}
+    .prime{color:#c07000;font-weight:bold;}
     .tag{background:#e8f0fe;color:#1a56db;border-radius:3px;padding:1px 4px;font-family:'Courier New',monospace;font-size:7.5px;font-weight:bold;}
-    .inv-group-header td{color:#333;}
-    .subtotal-row td{background:#fafafa;border-top:1px solid #ddd;font-weight:bold;font-size:8px;}
-    .gap td{border:none;}
-    .grand-total{margin-top:16px;text-align:right;border-top:3px double #111;padding-top:8px;}
-    .grand-total .label{font-size:10px;font-weight:bold;margin-right:16px;}
-    .grand-total .amount{font-size:16px;font-weight:bold;color:#c07000;font-family:'Courier New',monospace;}
+    .grand-total{margin-top:20px;text-align:right;border-top:3px double #111;padding-top:10px;}
+    .grand-total .label{font-size:11px;font-weight:bold;margin-right:16px;}
+    .grand-total .amount{font-size:18px;font-weight:bold;color:#c07000;font-family:'Courier New',monospace;}
     .footer{margin-top:32px;font-size:7.5px;color:#888;border-top:1px solid #ddd;padding-top:8px;text-align:center;}
     @media print{body{margin:0.4in 0.5in;}}
-  </style>
-  </head><body>
+  </style></head><body>
 
   <div class="inv-header">
     <div>
@@ -2031,17 +2257,15 @@ function printSiteInvoice(siteId) {
     <thead>
       <tr>
         <th style="width:24px;">#</th>
-        <th style="width:70px;">Unit Code</th>
+        <th style="width:72px;">Unit Code</th>
         <th>Description</th>
         <th class="right" style="width:36px;">UOM</th>
-        <th class="right" style="width:36px;">Qty</th>
-        <th class="right" style="width:64px;">Unit Price</th>
-        <th class="right" style="width:72px;">Total</th>
+        <th class="right" style="width:50px;">Total Qty</th>
+        <th class="right" style="width:70px;">Unit Price</th>
+        <th class="right" style="width:76px;">Total</th>
       </tr>
     </thead>
-    <tbody>
-      ${tableRows}
-    </tbody>
+    <tbody>${tableRows}</tbody>
   </table>
 
   <div class="grand-total">
@@ -2052,11 +2276,114 @@ function printSiteInvoice(siteId) {
   <div class="footer">
     Palmer Construction Company, Inc. &nbsp;·&nbsp; Generated ${new Date().toLocaleString()} &nbsp;·&nbsp; ${site.name} — Week Ending ${fmtDate(weekEnd)}
   </div>
+  </body></html>`;
+
+  printHTML(html);
+
+  // Generate lien waiver after short delay so both windows open
+  setTimeout(() => printLienWaiver(site, grandTotal, docInvNo, weekEnd), 800);
+
+  showNotif('Opening ' + site.name + ' invoice + lien waiver...');
+}
+
+function printLienWaiver(site, invoiceTotal, invoiceRef, weekEnd) {
+  const today = new Date();
+  const fmtDate = d => d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const fmtShort = d => d.toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'});
+  const todayStr = fmtDate(today);
+  const todayDay = today.getDate();
+  const todayMonth = today.toLocaleDateString('en-US',{month:'long'});
+  const todayYear = today.getFullYear().toString().slice(-2);
+  const invoiceDateStr = fmtShort(weekEnd);
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Lien Waiver — ${site.name} — ${fmtDate(weekEnd)}</title>
+  <style>
+    body{font-family:'Times New Roman',serif;font-size:10pt;color:#000;margin:1in;}
+    h2{text-align:center;font-size:13pt;margin-bottom:4px;}
+    h3{text-align:center;font-size:11pt;font-weight:normal;margin-top:0;}
+    p{margin:10px 0;line-height:1.5;}
+    .to-line{margin-bottom:16px;font-size:10pt;}
+    .to-line span{border-bottom:1px solid #000;display:inline-block;min-width:200px;padding:0 4px;}
+    ol{margin:10px 0 10px 20px;padding:0;}
+    ol li{margin-bottom:10px;line-height:1.5;}
+    table.payment{border-collapse:collapse;width:100%;margin:12px 0;}
+    table.payment th{border:1px solid #000;padding:6px 8px;background:#f0f0f0;font-size:9pt;text-align:center;}
+    table.payment td{border:1px solid #000;padding:6px 8px;font-size:9pt;text-align:center;}
+    .sig-block{margin-top:40px;}
+    .sig-line{display:flex;gap:40px;margin-top:20px;}
+    .sig-field{flex:1;}
+    .sig-field .line{border-bottom:1px solid #000;min-height:24px;margin-bottom:4px;}
+    .sig-field .label{font-size:8.5pt;color:#444;}
+    .exhibit{text-align:right;font-size:9pt;margin-bottom:8px;}
+    @media print{body{margin:0.75in;}}
+  </style></head><body>
+
+  <div class="exhibit">Exhibit B</div>
+  <h2>Subcontractor Partial Release and Waiver of Lien</h2>
+
+  <div class="to-line">TO: <span>Congruex</span></div>
+
+  <p>WHEREAS, <strong>Congruex</strong> (the "Company") and entered into a certain Agreement with its' customer (the "Owner" or "Customer") pursuant to which the Company has contracted with the Owner to perform certain Work (the "General Contract"); and</p>
+
+  <p>WHEREAS, <strong>Palmer Construction Company, Inc.</strong> (the "Subcontractor") has entered into that certain Master Subcontract Agreement with the Company pursuant to which Subcontractor has agreed to provided certain Work in connection with the Work ("Agreement").</p>
+
+  <p>NOW THEREFORE, in consideration of Company's payment of undisputed and/or otherwise withheld, retained and/or offset portions of Subcontractor's invoice in accordance with the Agreement and for other good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the Subcontractor agrees as follows:</p>
+
+  <ol>
+    <li>Capitalized terms used and not defined herein shall have the meaning assigned to them in the Agreement.</li>
+    <li>Upon Subcontractor's receipt of payment from the Company in the amount as set forth in the below table, this Partial Release and Waiver of Lien shall become fully effective (the "Partial Release and Waiver of Lien Effective Date"), and the Subcontractor, hereby irrevocably, releases, waives, discharges and relinquishes any lien including, any mechanic's lien, personal liability notice, stop notice, bond right, right of retention, and any other claim or charge, other than claims, request for changes in the Work, liens and obligations for which Company has been put on notice, pursuant to the Agreement, Subcontractor has or may have arising out of or relating to the Agreement as of the Partial Release and Waiver of Lien Effective Date (except for a payment of retainage withheld thereupon to the extent such retainage is held by Company).
+
+      <table class="payment">
+        <tr>
+          <th>Invoice Date</th>
+          <th>Invoice Number</th>
+          <th>Invoice Total</th>
+          <th>Less Retainage</th>
+          <th>Total Payable</th>
+        </tr>
+        <tr>
+          <td>${invoiceDateStr}</td>
+          <td>${invoiceRef}</td>
+          <td>$${invoiceTotal.toFixed(2)}</td>
+          <td>$0.00</td>
+          <td>$${invoiceTotal.toFixed(2)}</td>
+        </tr>
+      </table>
+    </li>
+    <li>Conditioned upon Subcontractor's receipt of the payment referenced in paragraph 2 above and without prejudice to paragraph 2, the Subcontractor warrants that it shall, on receiving written notice from the Owner or the Company, or on otherwise becoming aware of any asserted claim, personal liability notice, lien or charge of the kind described in paragraph 2, which interferes with the Owner's or the Company's free control of assets or with due and timely performance of the Work, immediately procure the release or discharge of such claim, lien or charge at its own expense.</li>
+    <li>This Partial Release and Waiver of Lien covers only amounts due and owing to the Subcontractor for all labor, services, equipment furnished to or for Company or Owner by the Subcontractor and its Lower Tier Subcontractors in connection with the part of the Agreement Work performed by, through or on behalf of the Subcontractor as of the Partial Release and Waiver of Lien Effective Date.</li>
+    <li>The Subcontractor further warrants that all laborers, suppliers and Lower Tier Subcontractors employed by the Subcontractor in connection with the Work have been fully paid and/or amounts withheld for retention (if any) for the part of the Work performed by, through or on behalf of the Subcontractor for which the Subcontractor has been previously paid by the Company. Subcontractor further represents and warrants that it has obtained similar release and lien waivers from all Lower Tier Subcontractors and Vendors for Work covered by this Partial Release and Waiver of Lien.</li>
+    <li>The Subcontractor understands and acknowledges that this Partial Release and Waiver of Lien does not release the Subcontractor from any warranty obligations, express or implied, due the Owner or its agents or representatives or the Company or its agents or representatives arising out of or related to the Agreement or the Work.</li>
+    <li>This Partial Release and Waiver of Lien shall be effective upon receipt of payment as set forth in paragraph 2 above, and there are no other contingencies relating hereto, and this Partial Release and Waiver of Lien is otherwise a present, absolute and unconditional commitment and undertaking.</li>
+    <li>Subcontractor represents and warrants that with respect to rights and claims released herein that could be asserted by Subcontractor, it is the sole owner of such rights and claims, that it has not sold, assigned or conveyed such rights or claims to any other person, and that the individual executing this instrument on its behalf has personal knowledge of the matters herein stated and is authorized and fully qualified to execute this instrument as or on behalf of the Subcontractor.</li>
+    <li>Any term or provision of this Partial Release and Waiver of Lien that is invalid or unenforceable in any situation in any jurisdiction will not affect the validity or enforceability of the remaining terms and provisions hereof or the validity or enforceability of the offending term or provision in any other situation or in any other jurisdiction.</li>
+    <li>Subcontractor shall indemnify, defend and save harmless Company, Company's surety(s) and Owner, their heirs, executors, administrators, successors, Affiliates, assigns, employers, employees, bailees, agents and servants against all loss, cost, damage or expense, including attorney's fees, by reason of any and all manner of liens, claims or demands which anyone may have for labor performed, or for material, supplies, or equipment furnished under the Agreement through the Partial Release and Waiver of Lien Effective Date.</li>
+    <li>This Partial Release and Waiver of Lien shall be governed by the laws of the State of <strong>West Virginia</strong>.</li>
+  </ol>
+
+  <p>Dated: <strong>${todayMonth} ${todayDay}</strong>, 20<strong>${todayYear}</strong></p>
+
+  <div class="sig-block">
+    <div class="sig-line">
+      <div class="sig-field">
+        <div class="line"></div>
+        <div class="label">Signature</div>
+      </div>
+      <div class="sig-field">
+        <div class="line"></div>
+        <div class="label">Name: Alexis Palmer</div>
+      </div>
+      <div class="sig-field">
+        <div class="line"></div>
+        <div class="label">Title: Vice President</div>
+      </div>
+    </div>
+  </div>
 
   </body></html>`;
 
   printHTML(html);
-  showNotif(`Opening ${site.name} invoice PDF...`);
 }
 
 function printMyProductivity() {
@@ -2209,7 +2536,7 @@ function importData(event) {
 // TABS & NOTIFICATIONS
 // ============================================================
 function switchTab(name) {
-  const names=['entry','history','weekly','contractors','sites'];
+  const names=['entry','history','weekly','exports','contractors','sites'];
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
@@ -2217,6 +2544,7 @@ function switchTab(name) {
   if (name==='weekly') renderWeekly();
   if (name==='contractors') renderContractorGrid();
   if (name==='sites') renderSiteGrid();
+  if (name==='exports') renderExports();
 }
 
 let notifTimer;
