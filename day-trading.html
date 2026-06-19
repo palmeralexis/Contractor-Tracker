@@ -83,6 +83,7 @@
   <div class="tab" data-tab="system">The System</div>
   <div class="tab" data-tab="calc">Trade Calculator</div>
   <div class="tab" data-tab="projector">Compounding Projector</div>
+  <div class="tab" data-tab="sim">Live Simulator</div>
   <div class="tab" data-tab="journal">Journal</div>
   <div class="tab" data-tab="start">How To Start</div>
 </div>
@@ -225,6 +226,33 @@
     </div>
     <p class="muted" style="font-size:0.78rem;margin-top:0.5rem">Default 3 trades/week reflects the <strong>PDT rule</strong> on a sub-$25k margin account. A 45% win rate at 2R is a <em>genuinely good</em> day-trading edge — don't assume better.</p>
     <div id="projOut" style="margin-top:0.8rem"></div>
+  </div>
+</section>
+
+<!-- ============ SIMULATOR ============ -->
+<section class="section" id="sim">
+  <h2>Live Compounding Simulator</h2>
+  <p class="muted">You wanted to <em>see what you can compound and make</em>. Press the button. Each session runs your edge through the PDT trade cap and draws the result on the curve — a true-to-life dry run of the journey, zero money at risk.</p>
+  <div class="card">
+    <div class="grid grid-4">
+      <div class="field"><label>Win Rate %</label><input type="number" id="s_win" value="45"></div>
+      <div class="field"><label>Reward : Risk</label><input type="number" id="s_rr" value="2" step="0.5"></div>
+      <div class="field"><label>Risk / Trade %</label><input type="number" id="s_risk" value="2" step="0.5"></div>
+      <div class="field"><label>Trades / Session</label><input type="number" id="s_tps" value="3"></div>
+    </div>
+    <div class="row" style="margin-top:0.6rem">
+      <button class="btn btn-green" onclick="simStep(1)">Run 1 Session</button>
+      <button class="btn btn-primary" onclick="simStep(20)">Run 20 Sessions</button>
+      <button class="btn btn-ghost" onclick="simReset()">Reset to $100</button>
+    </div>
+    <div class="grid grid-4" style="margin-top:1rem">
+      <div class="stat"><div class="v" id="s_bal">$100.00</div><div class="l">Balance</div></div>
+      <div class="stat"><div class="v" id="s_sessions">0</div><div class="l">Sessions Traded</div></div>
+      <div class="stat"><div class="v" id="s_ret">+0.0%</div><div class="l">Total Return</div></div>
+      <div class="stat"><div class="v" id="s_peakdd">0%</div><div class="l">Worst Drawdown</div></div>
+    </div>
+    <canvas id="simCanvas" width="1000" height="320" style="width:100%;margin-top:1rem;background:var(--bg);border:1px solid var(--border);border-radius:5px"></canvas>
+    <p class="muted" id="s_msg" style="margin-top:0.6rem">Tip: run it several times. Some runs moon, some bleed out — same edge. That spread is the truth nobody selling courses shows you.</p>
   </div>
 </section>
 
@@ -381,6 +409,68 @@
       ${expR<=0?'<div class="danger-banner" style="margin-top:0.8rem">Your inputs have a NEGATIVE edge — no position size saves a losing system. Fix the win rate or R first (on paper).</div>':''}
       <p class="muted" style="margin-top:0.7rem">Reality read: even with a real edge, the <strong>best</strong> and <strong>worst</strong> sims are miles apart — that gap is luck, and it's why one year won't make you rich from $100. The expected path grows, but slowly. <strong>The point of $100 is to prove the edge is real and that you can survive the bad sim — then scale capital, not risk.</strong></p>`;
   }
+
+  // ---- live simulator ----
+  let simState={bal:100,start:100,sessions:0,peak:100,maxDD:0,curve:[100]};
+  function simReset(){simState={bal:100,start:100,sessions:0,peak:100,maxDD:0,curve:[100]};drawSim();updateSimStats('Reset. Press a Run button to watch the curve build.');}
+  function simStep(n){
+    const win=+document.getElementById('s_win').value/100;
+    const rr=+document.getElementById('s_rr').value;
+    const risk=+document.getElementById('s_risk').value/100;
+    const tps=Math.max(1,Math.round(+document.getElementById('s_tps').value));
+    for(let s=0;s<n;s++){
+      let losesToday=0;
+      for(let t=0;t<tps;t++){
+        if(losesToday>=2)break; // 2-losses-and-done guardrail, modeled honestly
+        const wonR=(Math.random()<win)?rr:-1;
+        if(wonR<0)losesToday++;
+        simState.bal*=(1+wonR*risk);
+        if(simState.bal>simState.peak)simState.peak=simState.bal;
+        const dd=(simState.peak-simState.bal)/simState.peak;
+        if(dd>simState.maxDD)simState.maxDD=dd;
+      }
+      simState.sessions++;
+      simState.curve.push(simState.bal);
+    }
+    drawSim();
+    const ret=(simState.bal-simState.start)/simState.start*100;
+    let msg;
+    if(simState.bal<25)msg='That run effectively blew up. Same edge, bad luck. THIS is why $100 is a test, not a nest egg.';
+    else if(ret>200)msg='Great run — but hit Reset and run it again. The next one might not look like this. Never confuse a good streak with skill.';
+    else msg='Steady. Notice how slow honest compounding actually is — and how a drawdown feels. That feeling is the real lesson.';
+    updateSimStats(msg);
+  }
+  function updateSimStats(msg){
+    const ret=(simState.bal-simState.start)/simState.start*100;
+    document.getElementById('s_bal').textContent='$'+simState.bal.toFixed(2);
+    document.getElementById('s_sessions').textContent=simState.sessions;
+    const re=document.getElementById('s_ret');
+    re.textContent=(ret>=0?'+':'')+ret.toFixed(1)+'%';
+    re.style.color=ret>=0?'var(--win)':'var(--loss)';
+    document.getElementById('s_peakdd').textContent='-'+(simState.maxDD*100).toFixed(0)+'%';
+    if(msg)document.getElementById('s_msg').textContent=msg;
+  }
+  function drawSim(){
+    const c=document.getElementById('simCanvas');if(!c)return;const ctx=c.getContext('2d');
+    const W=c.width,H=c.height,pad=40;
+    ctx.clearRect(0,0,W,H);
+    const data=simState.curve;
+    const max=Math.max(...data,simState.start*1.2),min=Math.min(...data,0);
+    const x=i=>pad+(W-2*pad)*(i/Math.max(1,data.length-1));
+    const y=v=>H-pad-(H-2*pad)*((v-min)/Math.max(1e-9,(max-min)));
+    // baseline at start
+    ctx.strokeStyle='#2a3045';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.moveTo(pad,y(simState.start));ctx.lineTo(W-pad,y(simState.start));ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#7a85a3';ctx.font='11px monospace';
+    ctx.fillText('$'+simState.start.toFixed(0),4,y(simState.start)+4);
+    ctx.fillText('$'+max.toFixed(0),4,y(max)+10);
+    // equity line
+    ctx.strokeStyle=simState.bal>=simState.start?'#3af0a0':'#ff7e5f';ctx.lineWidth=2;
+    ctx.beginPath();data.forEach((v,i)=>{i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v));});ctx.stroke();
+    updateSimStats();
+  }
+  // initial draw when sim tab first shown
+  document.querySelector('[data-tab="sim"]').addEventListener('click',()=>setTimeout(drawSim,30));
 
   // ---- journal (localStorage) ----
   const KEY='dt100_journal_v1';
