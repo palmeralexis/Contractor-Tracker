@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>$100 Day-Trade Cockpit</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0d0f14;--surface:#151820;--surface2:#1c2030;--border:#2a3045;
+    --accent:#f5a623;--accent2:#3af0a0;--danger:#ff4d4d;
+    --text:#e8ecf5;--muted:#7a85a3;--prime:#4d9fff;--win:#3af0a0;--loss:#ff7e5f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  header{background:var(--surface);border-bottom:2px solid var(--accent);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.4rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);}
+  .logo span{color:var(--text);}
+  .header-meta{font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--muted);text-align:right;}
+  .header-meta strong{color:var(--accent2);}
+  .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;flex-wrap:wrap;}
+  .tab{padding:0.9rem 1.5rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all 0.15s;}
+  .tab:hover{color:var(--text);}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  main{padding:1.5rem 2rem;max-width:1100px;margin:0 auto;}
+  .section{display:none;}
+  .section.active{display:block;}
+  h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;font-size:1.5rem;margin-bottom:0.3rem;color:var(--text);}
+  h3{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;font-size:1.05rem;margin:1.2rem 0 0.6rem;color:var(--accent);}
+  p{line-height:1.55;margin-bottom:0.7rem;color:var(--text);}
+  .muted{color:var(--muted);}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:1.3rem 1.5rem;margin-bottom:1.2rem;}
+  .card.warn{border-left:4px solid var(--danger);}
+  .card.good{border-left:4px solid var(--accent2);}
+  .card.accent{border-left:4px solid var(--accent);}
+  label{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:0.3rem;}
+  input,select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.55rem 0.75rem;font-family:'Barlow',sans-serif;font-size:0.9rem;border-radius:3px;outline:none;width:100%;transition:border-color 0.15s;}
+  input:focus,select:focus{border-color:var(--accent);}
+  .btn{padding:0.6rem 1.3rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:0.1em;text-transform:uppercase;border:none;border-radius:3px;cursor:pointer;transition:all 0.15s;}
+  .btn-primary{background:var(--accent);color:#000;}
+  .btn-primary:hover{background:#ffb84d;}
+  .btn-green{background:var(--accent2);color:#000;}
+  .btn-danger{background:transparent;border:1px solid var(--danger);color:var(--danger);}
+  .btn-danger:hover{background:var(--danger);color:#fff;}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+  .grid{display:grid;gap:1rem;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  @media(max-width:720px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
+  .stat{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:0.9rem 1rem;text-align:center;}
+  .stat .v{font-family:'Share Tech Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--accent2);}
+  .stat .l{font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-top:0.2rem;}
+  .mono{font-family:'Share Tech Mono',monospace;}
+  table{width:100%;border-collapse:collapse;font-size:0.85rem;}
+  th{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0.6rem 0.5rem;border-bottom:1px solid var(--border);}
+  td{padding:0.55rem 0.5rem;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;}
+  .pos{color:var(--win);}
+  .neg{color:var(--loss);}
+  ul{margin:0.3rem 0 0.8rem 1.2rem;}
+  li{line-height:1.6;margin-bottom:0.35rem;}
+  .pill{display:inline-block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;padding:0.15rem 0.5rem;border-radius:3px;}
+  .pill-win{background:rgba(58,240,160,0.15);color:var(--win);}
+  .pill-loss{background:rgba(255,126,95,0.15);color:var(--loss);}
+  .checklist{list-style:none;margin-left:0;}
+  .checklist li{display:flex;align-items:flex-start;gap:0.6rem;}
+  .checklist input[type=checkbox]{width:auto;margin-top:0.25rem;}
+  .big-result{font-family:'Share Tech Mono',monospace;font-size:1.3rem;color:var(--accent2);font-weight:700;}
+  .row{display:flex;gap:0.8rem;align-items:flex-end;flex-wrap:wrap;}
+  .danger-banner{background:rgba(255,77,77,0.12);border:1px solid var(--danger);color:#ffb3b3;padding:0.7rem 1rem;border-radius:5px;font-size:0.85rem;margin-bottom:1rem;}
+  code{font-family:'Share Tech Mono',monospace;background:var(--surface2);padding:0.1rem 0.35rem;border-radius:3px;color:var(--accent);}
+  .field{margin-bottom:0.8rem;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">$100 <span>DAY-TRADE COCKPIT</span></div>
+  <div class="header-meta">MODE: <strong>PAPER (recommended)</strong><br>A mechanical system, not a money printer</div>
+</header>
+<div class="tabs">
+  <div class="tab active" data-tab="reality">Reality Check</div>
+  <div class="tab" data-tab="system">The System</div>
+  <div class="tab" data-tab="calc">Trade Calculator</div>
+  <div class="tab" data-tab="journal">Journal &amp; Compounding</div>
+  <div class="tab" data-tab="start">How To Start</div>
+</div>
+<main>
+
+<!-- ============ REALITY ============ -->
+<section class="section active" id="reality">
+  <h2>Read this once. It's the most valuable part.</h2>
+  <p class="muted">You asked to get rich fast and not think. I'm going to give you a system that removes the thinking — but I won't lie to you about the "fast rich" part, because that lie is exactly what empties small accounts.</p>
+
+  <div class="card warn">
+    <h3 style="color:var(--danger)">The four hard truths</h3>
+    <ul>
+      <li><strong>The PDT rule.</strong> A US margin account under <code>$25,000</code> can only make <strong>3 day trades per rolling 5 business days</strong>. With $100 you are heavily rate-limited. (A cash account avoids this but you must wait for funds to settle.)</li>
+      <li><strong>The math of small accounts.</strong> Even a great trader risking 1% per trade is risking <code>$1</code> on a $100 account. To "get rich" you'd need hundreds of perfect compounding trades with zero large losses. One bad day undoes weeks.</li>
+      <li><strong>Costs are brutal at this size.</strong> Spreads, slippage, and any fees are a fixed tax that's tiny on $25k and enormous on $100.</li>
+      <li><strong>~70–90% of active day traders lose money</strong> over time. The edge isn't picking winners — it's risk control and repetition. That's learnable. Getting rich on $100 in weeks is not realistic.</li>
+    </ul>
+  </div>
+
+  <div class="card good">
+    <h3 style="color:var(--accent2)">What $100 is genuinely great for</h3>
+    <ul>
+      <li><strong>A flight simulator with real emotions.</strong> Small enough that a wipeout teaches you, not bankrupts you.</li>
+      <li><strong>Building one repeatable edge</strong> — the only thing that compounds.</li>
+      <li><strong>Proving you can follow rules</strong> before you ever risk real size.</li>
+    </ul>
+    <p style="margin-bottom:0">My honest recommendation: <strong>run this whole thing in PAPER mode for 30 trading days first.</strong> Same skills, same data, zero risk. If you're net green and disciplined on paper, then the $100 is a graduation fee, not a lottery ticket.</p>
+  </div>
+
+  <div class="card accent">
+    <h3>The deal I'll make with you</h3>
+    <p style="margin-bottom:0">You don't want to think — fine. The job of the other tabs is to <strong>do the thinking for you</strong>: one mechanical setup, an automatic position-size/stop/target calculator, and hard guardrails that stop you when you've lost too much in a day. Your only job becomes: <em>follow the checklist or don't trade.</em></p>
+  </div>
+</section>
+
+<!-- ============ SYSTEM ============ -->
+<section class="section" id="system">
+  <h2>The Mechanical System</h2>
+  <p class="muted">One setup. Defined entry, stop, and target. If the setup isn't there, you don't trade. No discretion, no thinking, no FOMO.</p>
+
+  <div class="card">
+    <h3>Strategy: VWAP Reclaim Pullback (long-only to start)</h3>
+    <p>A liquid stock opens, sells off, then reclaims its <strong>VWAP</strong> (volume-weighted average price — the intraday "fair value" line every platform draws for free). You buy the first clean pullback that holds above VWAP. It's one of the most documented, beginner-survivable intraday patterns.</p>
+    <h3>Universe (what to even look at)</h3>
+    <ul>
+      <li>Large, liquid names or ETFs: e.g. <code>SPY</code>, <code>QQQ</code>, <code>AAPL</code>, <code>AMD</code>, <code>NVDA</code> — tight spreads, no gap-and-die penny-stock traps.</li>
+      <li>Price low enough that you can buy at least a few shares with $100 (ETFs/fractional shares help). With $100, focus on <strong>paper sizing first</strong>; share count is tiny.</li>
+    </ul>
+    <h3>The exact entry checklist (all must be true)</h3>
+    <ul class="checklist">
+      <li><input type="checkbox"> It's between <strong>9:45–11:00 AM ET</strong> (skip the chaotic first 15 min and the lunch chop).</li>
+      <li><input type="checkbox"> Price is <strong>above VWAP</strong> and has pulled back <em>to</em> VWAP without breaking decisively below it.</li>
+      <li><input type="checkbox"> A green candle <strong>closes back above VWAP</strong> (the reclaim). That candle's low is your stop reference.</li>
+      <li><input type="checkbox"> Volume on the reclaim candle is <strong>not dead</strong> (≥ the prior few candles).</li>
+      <li><input type="checkbox"> You have <strong>day trades remaining</strong> (PDT) and haven't hit your daily loss limit.</li>
+    </ul>
+    <h3>The exits (decided BEFORE you enter)</h3>
+    <ul>
+      <li><strong>Stop:</strong> a few cents below the reclaim candle's low. This defines your risk. The calculator turns it into share size.</li>
+      <li><strong>Target:</strong> <code>2R</code> — twice your risk distance. Sell the whole position there.</li>
+      <li><strong>Time stop:</strong> if it hasn't hit target or stop in ~30 min and is going nowhere, exit flat. Capital is for setups, not hope.</li>
+      <li><strong>Hard rule:</strong> never move your stop down/away. Ever. That single rule outperforms most "strategies."</li>
+    </ul>
+  </div>
+
+  <div class="card warn">
+    <h3 style="color:var(--danger)">The guardrails (non-negotiable)</h3>
+    <ul>
+      <li><strong>Risk per trade:</strong> max <code>2%</code> of the account (the calculator enforces this).</li>
+      <li><strong>Daily loss limit:</strong> <strong>2 losing trades = done for the day.</strong> Walk away. This is the rule that keeps you alive.</li>
+      <li><strong>Daily profit lock:</strong> up a clean win? Banking it and stopping is allowed and smart.</li>
+      <li><strong>No revenge trades, no adding to losers, no "just this once."</strong></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CALCULATOR ============ -->
+<section class="section" id="calc">
+  <h2>Trade Calculator</h2>
+  <p class="muted">Enter the trade. It tells you the only number you need: how many shares to buy so you never risk more than your rule allows.</p>
+  <div class="card">
+    <div class="grid grid-3">
+      <div class="field"><label>Account Balance ($)</label><input type="number" id="c_acct" value="100" step="1"></div>
+      <div class="field"><label>Risk Per Trade (%)</label><input type="number" id="c_risk" value="2" step="0.5"></div>
+      <div class="field"><label>Reward : Risk Target</label><input type="number" id="c_rr" value="2" step="0.5"></div>
+      <div class="field"><label>Entry Price ($)</label><input type="number" id="c_entry" value="0" step="0.01"></div>
+      <div class="field"><label>Stop Price ($)</label><input type="number" id="c_stop" value="0" step="0.01"></div>
+      <div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-primary" style="width:100%" onclick="calcTrade()">Compute</button></div>
+    </div>
+    <div id="calcOut" style="margin-top:0.8rem"></div>
+  </div>
+</section>
+
+<!-- ============ JOURNAL ============ -->
+<section class="section" id="journal">
+  <h2>Journal &amp; Compounding</h2>
+  <p class="muted">Log every trade (paper or real). The only honest scoreboard. Saved in your browser — nothing leaves this page.</p>
+
+  <div class="grid grid-4" id="statRow" style="margin-bottom:1rem"></div>
+
+  <div class="card">
+    <h3>Log a trade</h3>
+    <div class="grid grid-4">
+      <div class="field"><label>Date</label><input type="date" id="j_date"></div>
+      <div class="field"><label>Ticker</label><input type="text" id="j_ticker" placeholder="SPY"></div>
+      <div class="field"><label>Mode</label><select id="j_mode"><option>Paper</option><option>Real</option></select></div>
+      <div class="field"><label>P/L ($)</label><input type="number" id="j_pl" step="0.01" placeholder="e.g. 2.00 or -1.00"></div>
+    </div>
+    <div class="row">
+      <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;text-transform:none;letter-spacing:0;color:var(--text)"><input type="checkbox" id="j_followed" style="width:auto" checked> I followed every rule</label>
+      <button class="btn btn-green" onclick="addTrade()">Add Trade</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>History</h3>
+    <table id="tradeTable"><thead><tr><th>#</th><th>Date</th><th>Ticker</th><th>Mode</th><th>P/L</th><th>Balance</th><th>Rules</th><th></th></tr></thead><tbody></tbody></table>
+    <p class="muted" id="emptyNote" style="margin-top:0.6rem">No trades yet. Paper-trade the system and log results here to watch the curve.</p>
+    <div style="margin-top:0.8rem"><button class="btn btn-ghost" onclick="resetJournal()">Reset journal</button></div>
+  </div>
+</section>
+
+<!-- ============ START ============ -->
+<section class="section" id="start">
+  <h2>How To Actually Start (free, today)</h2>
+  <div class="card accent">
+    <h3>Step 1 — Paper trade (do this first, no money)</h3>
+    <ul>
+      <li>Open a free <strong>paper-trading / simulated account</strong> (most major brokers and TradingView offer one). You get real live charts and fake money.</li>
+      <li>Add the <strong>VWAP</strong> indicator to a 1- or 2-minute chart of <code>SPY</code> or <code>QQQ</code>.</li>
+      <li>Trade <em>only</em> the checklist setup in "The System." Log every result in the Journal tab.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Step 2 — Grade yourself after 30 trades</h3>
+    <ul>
+      <li>Are you <strong>net green</strong>? Is your "rules followed" rate near 100%?</li>
+      <li>If yes → the $100 becomes a small live test of <em>execution under real emotion</em>, not a get-rich bet.</li>
+      <li>If no → keep paper trading. You just saved $100 by finding out for free.</li>
+    </ul>
+  </div>
+  <div class="card good">
+    <h3>Step 3 — If/when you go live with $100</h3>
+    <ul>
+      <li>Use a broker with <strong>$0 commissions and fractional shares</strong> so $100 can actually take a position.</li>
+      <li>Consider a <strong>cash account</strong> to sidestep the PDT 3-trade limit (trade-off: wait for settlement).</li>
+      <li>Same rules. Same calculator. Same 2-losses-and-done. The size changed; the discipline didn't.</li>
+    </ul>
+    <p style="margin-bottom:0"><strong>Realistic expectation:</strong> at 2% risk, a good day is a few dollars. Compounding is slow and real, not instant and magical. The win here is becoming someone who can run a system — that skill scales to real capital later.</p>
+  </div>
+  <div class="danger-banner">Not financial advice. This is an educational tool. Markets carry real risk of loss; never trade money you can't afford to lose, and consider a licensed advisor for actual financial decisions.</div>
+</section>
+
+</main>
+<script>
+  // ---- tabs ----
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('active');
+  }));
+
+  // ---- calculator ----
+  function calcTrade(){
+    const acct=+document.getElementById('c_acct').value;
+    const riskPct=+document.getElementById('c_risk').value;
+    const rr=+document.getElementById('c_rr').value;
+    const entry=+document.getElementById('c_entry').value;
+    const stop=+document.getElementById('c_stop').value;
+    const out=document.getElementById('calcOut');
+    if(!entry||!stop||entry<=stop){
+      out.innerHTML='<div class="danger-banner">Enter a valid Entry and Stop. For a long, Entry must be ABOVE Stop.</div>';return;
+    }
+    const riskDollars=acct*riskPct/100;
+    const perShareRisk=entry-stop;
+    const sharesRaw=riskDollars/perShareRisk;
+    const shares=Math.floor(sharesRaw*100)/100; // allow fractional
+    const wholeShares=Math.floor(sharesRaw);
+    const target=entry+perShareRisk*rr;
+    const cost=shares*entry;
+    const maxLoss=shares*perShareRisk;
+    const maxWin=shares*(target-entry);
+    const overBudget=cost>acct;
+    out.innerHTML=`
+      <div class="grid grid-4">
+        <div class="stat"><div class="v">${shares.toFixed(2)}</div><div class="l">Shares (frac)</div></div>
+        <div class="stat"><div class="v">${wholeShares}</div><div class="l">Shares (whole)</div></div>
+        <div class="stat"><div class="v">$${target.toFixed(2)}</div><div class="l">Target (${rr}R)</div></div>
+        <div class="stat"><div class="v">$${perShareRisk.toFixed(2)}</div><div class="l">Risk / Share</div></div>
+      </div>
+      <div class="grid grid-3" style="margin-top:0.8rem">
+        <div class="stat"><div class="v" style="color:var(--loss)">-$${maxLoss.toFixed(2)}</div><div class="l">Max Loss (your rule)</div></div>
+        <div class="stat"><div class="v" style="color:var(--win)">+$${maxWin.toFixed(2)}</div><div class="l">Target Gain</div></div>
+        <div class="stat"><div class="v">$${cost.toFixed(2)}</div><div class="l">Position Cost</div></div>
+      </div>
+      ${overBudget?`<div class="danger-banner" style="margin-top:0.8rem">Heads up: full position costs $${cost.toFixed(2)}, more than your $${acct} account. Use fractional shares, or pick a lower-priced instrument. Your <strong>risk</strong> stays capped at $${maxLoss.toFixed(2)} regardless.</div>`:''}
+      <p class="muted" style="margin-top:0.7rem">Translation: buy <strong>${shares.toFixed(2)} shares at $${entry.toFixed(2)}</strong>, stop at <strong>$${stop.toFixed(2)}</strong>, sell all at <strong>$${target.toFixed(2)}</strong>. If stopped you lose <strong>$${maxLoss.toFixed(2)}</strong> — and that's the plan, not a surprise.</p>`;
+  }
+
+  // ---- journal (localStorage) ----
+  const KEY='dt100_journal_v1';
+  const START_BAL=100;
+  function load(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]}}
+  function save(d){localStorage.setItem(KEY,JSON.stringify(d))}
+  function addTrade(){
+    const t={date:document.getElementById('j_date').value||new Date().toISOString().slice(0,10),
+      ticker:(document.getElementById('j_ticker').value||'—').toUpperCase(),
+      mode:document.getElementById('j_mode').value,
+      pl:+document.getElementById('j_pl').value||0,
+      followed:document.getElementById('j_followed').checked};
+    const d=load();d.push(t);save(d);
+    document.getElementById('j_ticker').value='';document.getElementById('j_pl').value='';
+    render();
+  }
+  function delTrade(i){const d=load();d.splice(i,1);save(d);render();}
+  function resetJournal(){if(confirm('Erase all logged trades?')){save([]);render();}}
+  function render(){
+    const d=load();
+    const tbody=document.querySelector('#tradeTable tbody');tbody.innerHTML='';
+    let bal=START_BAL,wins=0,losses=0,grossW=0,grossL=0,followed=0;
+    d.forEach((t,i)=>{
+      bal+=t.pl;
+      if(t.pl>0){wins++;grossW+=t.pl}else if(t.pl<0){losses++;grossL+=Math.abs(t.pl)}
+      if(t.followed)followed++;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${i+1}</td><td>${t.date}</td><td>${t.ticker}</td><td>${t.mode}</td>
+        <td class="${t.pl>=0?'pos':'neg'}">${t.pl>=0?'+':''}${t.pl.toFixed(2)}</td>
+        <td>$${bal.toFixed(2)}</td>
+        <td>${t.followed?'<span class="pill pill-win">Yes</span>':'<span class="pill pill-loss">No</span>'}</td>
+        <td><button class="btn btn-danger" style="padding:0.2rem 0.5rem;font-size:0.7rem" onclick="delTrade(${i})">✕</button></td>`;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('emptyNote').style.display=d.length?'none':'block';
+    const n=d.length;
+    const winRate=n?(wins/n*100):0;
+    const pf=grossL>0?(grossW/grossL):(grossW>0?Infinity:0);
+    const ret=((bal-START_BAL)/START_BAL*100);
+    const ruleRate=n?(followed/n*100):0;
+    document.getElementById('statRow').innerHTML=`
+      <div class="stat"><div class="v">$${bal.toFixed(2)}</div><div class="l">Balance (from $100)</div></div>
+      <div class="stat"><div class="v ${ret>=0?'pos':'neg'}" style="color:${ret>=0?'var(--win)':'var(--loss)'}">${ret>=0?'+':''}${ret.toFixed(1)}%</div><div class="l">Total Return</div></div>
+      <div class="stat"><div class="v">${winRate.toFixed(0)}%</div><div class="l">Win Rate (${wins}/${n})</div></div>
+      <div class="stat"><div class="v">${pf===Infinity?'∞':pf.toFixed(2)}</div><div class="l">Profit Factor</div></div>`;
+    // second row of insight under stats via title isn't needed; ruleRate shown in note
+    if(n){document.getElementById('emptyNote').style.display='none';}
+  }
+  // init defaults
+  document.getElementById('j_date').value=new Date().toISOString().slice(0,10);
+  render();
+</script>
+</body>
+</html>
