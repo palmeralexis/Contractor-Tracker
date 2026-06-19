@@ -79,9 +79,11 @@
 </header>
 <div class="tabs">
   <div class="tab active" data-tab="reality">Reality Check</div>
+  <div class="tab" data-tab="brief">Market Brief</div>
   <div class="tab" data-tab="system">The System</div>
   <div class="tab" data-tab="calc">Trade Calculator</div>
-  <div class="tab" data-tab="journal">Journal &amp; Compounding</div>
+  <div class="tab" data-tab="projector">Compounding Projector</div>
+  <div class="tab" data-tab="journal">Journal</div>
   <div class="tab" data-tab="start">How To Start</div>
 </div>
 <main>
@@ -114,6 +116,38 @@
   <div class="card accent">
     <h3>The deal I'll make with you</h3>
     <p style="margin-bottom:0">You don't want to think — fine. The job of the other tabs is to <strong>do the thinking for you</strong>: one mechanical setup, an automatic position-size/stop/target calculator, and hard guardrails that stop you when you've lost too much in a day. Your only job becomes: <em>follow the checklist or don't trade.</em></p>
+  </div>
+</section>
+
+<!-- ============ MARKET BRIEF ============ -->
+<section class="section" id="brief">
+  <h2>Expert Market Brief</h2>
+  <p class="muted">Dated read of the tape, written the way a desk trader would frame the day. <strong>As of Fri, June 19, 2026.</strong></p>
+
+  <div class="card warn">
+    <h3 style="color:var(--danger)">Today's #1 fact: the market is CLOSED</h3>
+    <p style="margin-bottom:0"><strong>June 19 is Juneteenth — NYSE and Nasdaq are both shut.</strong> Zero regular-session day trades happen today. A real trader's move on a holiday is to <em>review, plan, and paper-rehearse</em> — not force action. Anything telling you to "buy now" today is noise.</p>
+  </div>
+
+  <div class="card accent">
+    <h3>The regime right now (from Thu 6/18 close)</h3>
+    <ul>
+      <li><strong>Tape:</strong> Nasdaq <span class="pos">+1.91%</span> to ~7,500, S&amp;P 500 <span class="pos">+1.08%</span> to ~26,518, Dow <span class="pos">+0.14%</span>. Tech and cyclicals led a bounce-back rally.</li>
+      <li><strong>The overhang:</strong> the just-finished <strong>FOMC meeting leaned hawkish</strong> — officials signaling possible <em>rate hikes later in 2026</em>. That's a headwind that can flip risk-on days into sudden reversals. Translation for you: <strong>intraday volatility is elevated; respect your stops.</strong></li>
+      <li><strong>Leadership:</strong> broad tech/cyclical strength, but <strong>NVDA was soft</strong> (a ~1.5% drag earlier in the week). When the biggest index weight wobbles, index ETFs can chop — good for disciplined VWAP setups, brutal for chasers.</li>
+      <li><strong>Froth warning:</strong> the real fireworks were in tiny speculative names (low-float biotech/retail squeezing +60% to +180% on news). <strong>These are account-killers for a $100 beginner</strong> — huge spreads, instant reversals, halts. Stay in liquid ETFs/large caps.</li>
+    </ul>
+  </div>
+
+  <div class="card good">
+    <h3>The expert plan for the next OPEN session (Mon 6/22)</h3>
+    <ul>
+      <li><strong>Instruments:</strong> <code>SPY</code> / <code>QQQ</code> first. Liquid, tight spreads, behave well for VWAP reclaims. Add <code>AAPL</code>/<code>AMD</code> only once consistent.</li>
+      <li><strong>Bias:</strong> neutral-to-cautious. Hawkish Fed = don't marry a direction. Take the setup the tape gives you; <strong>2R and out.</strong></li>
+      <li><strong>Avoid:</strong> the first 15 minutes, lunch chop (11:30–1:30), and every low-float headline rocket. Those three rules alone save most beginners.</li>
+      <li><strong>Macro landmines to check each morning:</strong> Fed-speak, CPI/PCE prints, and any geopolitical headlines (Iran/oil has been live). News > your chart. If a big number drops at 8:30am, widen your respect for risk.</li>
+    </ul>
+    <p class="muted" style="margin-bottom:0">This is a snapshot, not a live feed. Re-read the tape each morning before you trade; I can refresh this brief on request.</p>
   </div>
 </section>
 
@@ -172,6 +206,25 @@
       <div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-primary" style="width:100%" onclick="calcTrade()">Compute</button></div>
     </div>
     <div id="calcOut" style="margin-top:0.8rem"></div>
+  </div>
+</section>
+
+<!-- ============ PROJECTOR ============ -->
+<section class="section" id="projector">
+  <h2>Compounding Projector</h2>
+  <p class="muted">This is the honest answer to "what can I compound?" Set your assumptions and see the realistic curve — including how PDT caps your trade count and how one realistic losing streak feels.</p>
+  <div class="card">
+    <div class="grid grid-4">
+      <div class="field"><label>Starting $</label><input type="number" id="p_start" value="100"></div>
+      <div class="field"><label>Risk / Trade %</label><input type="number" id="p_risk" value="2" step="0.5"></div>
+      <div class="field"><label>Win Rate %</label><input type="number" id="p_win" value="45" step="1"></div>
+      <div class="field"><label>Reward : Risk</label><input type="number" id="p_rr" value="2" step="0.5"></div>
+      <div class="field"><label>Trades / Week</label><input type="number" id="p_tpw" value="3" step="1"></div>
+      <div class="field"><label>Weeks</label><input type="number" id="p_weeks" value="52" step="1"></div>
+      <div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-primary" style="width:100%" onclick="project()">Project</button></div>
+    </div>
+    <p class="muted" style="font-size:0.78rem;margin-top:0.5rem">Default 3 trades/week reflects the <strong>PDT rule</strong> on a sub-$25k margin account. A 45% win rate at 2R is a <em>genuinely good</em> day-trading edge — don't assume better.</p>
+    <div id="projOut" style="margin-top:0.8rem"></div>
   </div>
 </section>
 
@@ -280,6 +333,53 @@
       </div>
       ${overBudget?`<div class="danger-banner" style="margin-top:0.8rem">Heads up: full position costs $${cost.toFixed(2)}, more than your $${acct} account. Use fractional shares, or pick a lower-priced instrument. Your <strong>risk</strong> stays capped at $${maxLoss.toFixed(2)} regardless.</div>`:''}
       <p class="muted" style="margin-top:0.7rem">Translation: buy <strong>${shares.toFixed(2)} shares at $${entry.toFixed(2)}</strong>, stop at <strong>$${stop.toFixed(2)}</strong>, sell all at <strong>$${target.toFixed(2)}</strong>. If stopped you lose <strong>$${maxLoss.toFixed(2)}</strong> — and that's the plan, not a surprise.</p>`;
+  }
+
+  // ---- compounding projector ----
+  function project(){
+    const start=+document.getElementById('p_start').value;
+    const risk=+document.getElementById('p_risk').value/100;
+    const win=+document.getElementById('p_win').value/100;
+    const rr=+document.getElementById('p_rr').value;
+    const tpw=+document.getElementById('p_tpw').value;
+    const weeks=+document.getElementById('p_weeks').value;
+    const totalTrades=tpw*weeks;
+    const expR=win*rr-(1-win)*1; // expectancy in R per trade
+    // deterministic expected path (compounding each trade by expR*risk)
+    let bal=start;
+    for(let i=0;i<totalTrades;i++){bal*=(1+expR*risk);}
+    const expected=bal;
+    // monte carlo for realistic spread + worst drawdown feel
+    let worst=Infinity,best=-Infinity,blowups=0,sumEnd=0;const SIMS=2000;
+    for(let s=0;s<SIMS;s++){
+      let b=start,peak=start,maxDD=0,dead=false;
+      for(let i=0;i<totalTrades;i++){
+        const r=(Math.random()<win)?rr:-1;
+        b*=(1+r*risk);
+        if(b>peak)peak=b;
+        const dd=(peak-b)/peak; if(dd>maxDD)maxDD=dd;
+        if(b<start*0.2){dead=true;} // treat -80% as practically blown up
+      }
+      if(dead)blowups++;
+      sumEnd+=b; if(b<worst)worst=b; if(b>best)best=b;
+    }
+    const avgEnd=sumEnd/SIMS;
+    const out=document.getElementById('projOut');
+    const exStr=expR>=0?`<span class="pos">+${(expR).toFixed(2)}R</span>`:`<span class="neg">${(expR).toFixed(2)}R</span>`;
+    out.innerHTML=`
+      <div class="grid grid-4">
+        <div class="stat"><div class="v">${totalTrades}</div><div class="l">Total Trades</div></div>
+        <div class="stat"><div class="v">${exStr}</div><div class="l">Edge / Trade</div></div>
+        <div class="stat"><div class="v">$${expected.toFixed(0)}</div><div class="l">Expected Path</div></div>
+        <div class="stat"><div class="v">$${avgEnd.toFixed(0)}</div><div class="l">Avg of 2000 Sims</div></div>
+      </div>
+      <div class="grid grid-3" style="margin-top:0.8rem">
+        <div class="stat"><div class="v neg" style="color:var(--loss)">$${worst.toFixed(0)}</div><div class="l">Worst Sim</div></div>
+        <div class="stat"><div class="v pos" style="color:var(--win)">$${best.toFixed(0)}</div><div class="l">Best Sim</div></div>
+        <div class="stat"><div class="v" style="color:${blowups>0?'var(--loss)':'var(--win)'}">${(blowups/SIMS*100).toFixed(1)}%</div><div class="l">Chance of -80%+ wipe</div></div>
+      </div>
+      ${expR<=0?'<div class="danger-banner" style="margin-top:0.8rem">Your inputs have a NEGATIVE edge — no position size saves a losing system. Fix the win rate or R first (on paper).</div>':''}
+      <p class="muted" style="margin-top:0.7rem">Reality read: even with a real edge, the <strong>best</strong> and <strong>worst</strong> sims are miles apart — that gap is luck, and it's why one year won't make you rich from $100. The expected path grows, but slowly. <strong>The point of $100 is to prove the edge is real and that you can survive the bad sim — then scale capital, not risk.</strong></p>`;
   }
 
   // ---- journal (localStorage) ----
